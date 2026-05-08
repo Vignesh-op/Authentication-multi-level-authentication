@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container-fluid">
+        <div class="row align-items-center justify-content-center" style="min-height: auto; padding: 40px 20px 60px 20px;">
+            <!-- Left Column - Text -->
+            <div class="col-lg-6 text-start" style="padding: 20px;">
+                <!-- Title -->
+                <h1 class="display-3 mb-3" style="font-family: 'Orbitron', sans-serif; letter-spacing: 4px; color: #00d9ff; text-shadow: 0 0 30px #00d9ff, 0 0 60px rgba(0, 217, 255, 0.5); font-weight: 900;">
+                    AUTHSAFE
+                </h1>
+                
+                <!-- Subtitle -->
+                <h2 class="display-5 mb-4" style="font-family: 'Orbitron', sans-serif; letter-spacing: 3px; color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.4); font-weight: 700;">
+                    NEXT-GEN IDENTITY
+                </h2>
+                
+                <!-- Tagline -->
+                <p class="lead mb-4" style="font-size: 1.3rem; color: #00d9ff; font-family: 'Space Mono', monospace; letter-spacing: 1px; font-weight: 500;">
+                    Multi-Level Authentication System
+                </p>
+                
+                <!-- Description -->
+                <p style="font-size: 1.05rem; color: #b0d4ff; line-height: 1.8; margin-bottom: 30px; font-weight: 500;">
+                    Experience advanced cybersecurity authentication with three-layer protection:<br>
+                    <span style="color: #00ff88; font-weight: 700; font-size: 1.05rem;">PIN Verification</span> • 
+                    <span style="color: #00d9ff; font-weight: 700; font-size: 1.05rem;">Facial Recognition</span> • 
+                    <span style="color: #ffc800; font-weight: 700; font-size: 1.05rem;">Smart Card QR</span>
+                </p>
+                
+                <!-- CTA Button -->
+                <div class="mt-4">
+                    <a href="{{ url_for('register') }}" class="btn btn-glow" style="padding: 14px 55px; font-size: 1.15rem; font-family: 'Orbitron', sans-serif; letter-spacing: 2.5px; background: linear-gradient(135deg, #00d9ff, #00ff88); border: 2px solid #00d9ff; color: #000; font-weight: 700; box-shadow: 0 0 25px rgba(0, 217, 255, 0.7), inset 0 0 20px rgba(0, 255, 136, 0.2); transition: all 0.3s ease;">
+                        GET STARTED
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right Column - Logo -->
+            <div class="col-lg-6 text-center" style="padding: 20px;">
+                <img src="{{ url_for('static', filename='images/authsafe_logo.png') }}" alt="AuthSafe Logo" style="max-width: 450px; width: 100%; height: auto; filter: drop-shadow(0 0 40px rgba(0, 217, 255, 0.5)) drop-shadow(0 0 80px rgba(0, 217, 255, 0.2)); transition: all 0.3s ease; transform: scale(1.05);">
+            </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5">
+    <div class="container-fluid">
+        <h2 class="text-neon-primary text-center mb-5" style="font-family: 'Orbitron', sans-serif; font-size: 2.5rem; letter-spacing: 2px;">
+            THREE-LAYER PROTECTION
+        </h2>
+        
+        <div class="row g-4">
+            <!-- Feature 1 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="text-neon-primary mb-3" style="font-size: 2.5rem;">
+                        <i class="bi bi-lock-fill"></i>
+                    </div>
+                    <h5 class="text-neon-primary mb-3" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+                        PIN VERIFICATION
+                    </h5>
+                    <p class="text-secondary">
+                        Secure 4-6 digit PIN with advanced bcrypt hashing for initial identity verification.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="text-neon-secondary mb-3" style="font-size: 2.5rem;">
+                        <i class="bi bi-eye-fill"></i>
+                    </div>
+                    <h5 class="text-neon-secondary mb-3" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+                        FACE RECOGNITION
+                    </h5>
+                    <p class="text-secondary">
+                        Multi-feature facial encoding with histogram, texture, and gradient analysis.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="text-neon-tertiary mb-3" style="font-size: 2.5rem;">
+                        <i class="bi bi-qr-code"></i>
+                    </div>
+                    <h5 class="text-neon-tertiary mb-3" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+                        SMARTCARD QR
+                    </h5>
+                    <p class="text-secondary">
+                        Physical smart card with embedded QR code for final authentication layer.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Security Section -->
+<section id="security" class="py-5">
+    <div class="container-fluid">
+        <h2 class="text-neon-primary text-center mb-5" style="font-family: 'Orbitron', sans-serif; font-size: 2.5rem; letter-spacing: 2px;">
+            ADVANCED SECURITY FEATURES
+        </h2>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="glass-card">
+                    <h5 class="text-neon-primary mb-3">
+                        <i class="bi bi-shield-check"></i> ENCRYPTION
+                    </h5>
+                    <ul class="text-secondary" style="list-style: none; padding: 0;">
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Bcrypt PIN hashing</li>
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> 160-D face encoding</li>
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Cosine distance verification</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="glass-card">
+                    <h5 class="text-neon-secondary mb-3">
+                        <i class="bi bi-lightning-charge-fill"></i> PERFORMANCE
+                    </h5>
+                    <ul class="text-secondary" style="list-style: none; padding: 0;">
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Auto-capture facial detection</li>
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Real-time QR scanning</li>
+                        <li><i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Instant verification</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="border-top" style="border-color: rgba(0, 217, 255, 0.3) !important; background: linear-gradient(180deg, rgba(10, 14, 39, 0.5), rgba(10, 14, 39, 0.9));">
+    <div class="container-fluid text-center py-4">
+        <p class="text-secondary mb-0">
+            © 2026 AuthSafe. Multi-Layer Identity Authentication System. All rights reserved.
+        </p>
+    </div>
+</footer>
+{% endblock %}

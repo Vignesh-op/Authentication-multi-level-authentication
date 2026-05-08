@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Final Access Granted Popup -->
+<div id="finalAccessGrantedModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; display: none;">
+    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 3px solid #00ff88; border-radius: 15px; padding: 40px; text-align: center; max-width: 500px; box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);">
+        <i class="bi bi-shield-check" style="font-size: 4rem; color: #00ff88; margin-bottom: 20px;"></i>
+        <h1 style="color: #00ff88; font-size: 3rem; margin: 20px 0; font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 10px #00ff88;">ACCESS GRANTED</h1>
+        <p style="color: #00d9ff; font-size: 1.2rem; margin: 15px 0; letter-spacing: 2px;">ALL FACTORS VERIFIED</p>
+        <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">✓ PIN Authentication<br/>✓ Face Biometric<br/>✓ Smart Card Hardware</p>
+        <p style="color: #666; font-size: 0.8rem; margin-top: 20px;"><em>Closing in <span id="countdown">3</span> seconds...</em></p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-4 text-neon-primary">Welcome, {{ name }}! 👋</h1>
+            <p class="lead text-light">You have successfully authenticated with AuthSafe.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-lg">Logout</a>
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card shadow-sm bg-dark text-light border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-neon-primary">Account Information</h5>
+                    <p><strong>Name:</strong> {{ name }}</p>
+                    <p><strong>Email:</strong> {{ email }}</p>
+                    <p><strong>Unique ID:</strong> <code class="text-info">{{ unique_id }}</code></p>
+                    <p><strong>Created:</strong> {{ created_at.strftime('%Y-%m-%d %H:%M:%S') if created_at else 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm bg-dark text-light border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-neon-primary">Security Status</h5>
+                    <p><span class="badge bg-success">✓ Email Verified</span></p>
+                    <p><span class="badge bg-success">✓ Face Registered</span></p>
+                    <p><span class="badge bg-success">✓ Smart Card Created</span></p>
+                    <p><span class="badge bg-success">✓ Multi-Factor Enabled</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm bg-dark text-light border-info">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Your Smart Cards</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Unique ID</th>
+                                    <th>Name</th>
+                                    <th>Created</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td><code class="text-info">{{ unique_id }}</code></td>
+                                    <td>{{ name }}</td>
+                                    <td>{{ created_at.strftime('%Y-%m-%d') if created_at else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('download_card', unique_id=unique_id) }}" class="btn btn-sm btn-primary">
+                                            📥 Download
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dashboard loaded
+console.log('Dashboard loaded successfully');
+</script>
+{% endblock %}

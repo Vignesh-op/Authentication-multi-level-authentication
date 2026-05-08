@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 92vh; display: flex; align-items: center; padding: 40px 0;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="glass-card">
+                    <h2 class="text-neon-secondary text-center mb-2" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; letter-spacing: 2px;">
+                        <i class="bi bi-qr-code"></i> SMARTCARD VERIFICATION
+                    </h2>
+                    <p class="text-center text-secondary mb-4" style="font-size: 0.85rem; letter-spacing: 1px;">STEP 3 OF 3: HARDWARE AUTHENTICATION</p>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+                        <i class="bi bi-x-circle"></i> {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info alert-cyberpunk">
+                        <i class="bi bi-info-circle"></i> Scan or upload your smartcard QR code for final authentication.
+                    </div>
+                    
+                    <form id="cardAuthForm" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="cardMethod" id="webcam" value="webcam" checked>
+                                <label class="btn btn-outline-info" for="webcam" style="border-color: rgba(0, 217, 255, 0.5); color: #00d9ff;">
+                                    <i class="bi bi-camera"></i> Webcam Scanner
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="cardMethod" id="upload" value="upload">
+                                <label class="btn btn-outline-info" for="upload" style="border-color: rgba(0, 217, 255, 0.5); color: #00d9ff;">
+                                    <i class="bi bi-image"></i> Upload Image
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Webcam Section -->
+                        <div id="webcamSection" class="mb-4" style="border: 2px solid rgba(0, 217, 255, 0.5); border-radius: 8px; overflow: hidden; background: #000;">
+                            <canvas id="cameraCanvas" width="640" height="480" style="width: 100%; display: block; background: #000;"></canvas>
+                            <p id="cameraStatus" class="text-center text-secondary small mt-2" style="letter-spacing: 1px;">Initializing camera...</p>
+                        </div>
+                        
+                        <!-- Upload Section -->
+                        <div id="uploadSection" style="display: none;" class="mb-4">
+                            <label for="cardImage" class="form-label" style="color: #00d9ff;"><strong>Upload Smart Card Image:</strong></label>
+                            <input type="file" class="form-control form-control-lg" id="cardImage" name="smartcard_image" accept="image/*" style="border-color: rgba(0, 217, 255, 0.5); color: #00d9ff;">
+                            <small class="text-muted">Upload a photo of your smartcard QR code</small>
+                        </div>
+                        
+                        <button type="button" id="verifyCardBtn" class="btn btn-glow w-100 mb-3">
+                            <i class="bi bi-qr-code"></i> VERIFY SMARTCARD
+                        </button>
+                        
+                        <div id="loadingSpinner" class="text-center" style="display: none;">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Verifying...</span>
+                            </div>
+                            <p class="text-secondary" style="letter-spacing: 1px;">SCANNING QR CODE...</p>
+                        </div>
+                    </form>
+                    
+                    <div id="successAlert" class="alert alert-success alert-cyberpunk alert-dismissible fade" style="display: none;" role="alert">
+                        <i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Smartcard verified successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    
+                    <a href="{{ url_for('dashboard') }}" id="dashboardBtn" class="btn btn-glow w-100" style="display: none;">
+                        <i class="bi bi-arrow-right-circle"></i> GO TO DASHBOARD
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const webcamRadio = document.getElementById('webcam');
+    const uploadRadio = document.getElementById('upload');
+    const uploadSection = document.getElementById('uploadSection');
+    const webcamSection = document.getElementById('webcamSection');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const successAlert = document.getElementById('successAlert');
+    const dashboardBtn = document.getElementById('dashboardBtn');
+    const verifyCardBtn = document.getElementById('verifyCardBtn');
+    const cardImage = document.getElementById('cardImage');
+    const canvas = document.getElementById('cameraCanvas');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const ctx = canvas.getContext('2d');
+    let stream = null;
+    let video = null;
+
+    async function initCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+
+            video = document.createElement('video');
+            video.srcObject = stream;
+            video.playsInline = true;
+            await video.play();
+
+            cameraStatus.textContent = '✓ Camera ready - Position QR code in center and click VERIFY SMARTCARD';
+
+            function drawFrame() {
+                if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                }
+                requestAnimationFrame(drawFrame);
+            }
+            drawFrame();
+        } catch (error) {
+            cameraStatus.textContent = '✗ Camera access denied. Please allow camera permission.';
+            console.error('Camera error:', error);
+        }
+    }
+
+    function captureCurrentFrame() {
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png');
+        });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            video = null;
+        }
+    }
+
+    async function parseResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
+        if (response.redirected) {
+            window.location.href = response.url;
+            return { success: false, error: 'Session expired. Redirecting to login...' };
+        }
+        const text = await response.text();
+        return { success: false, error: text || 'Unexpected server response' };
+    }
+    
+    if (webcamRadio) {
+        webcamRadio.addEventListener('change', function() {
+            webcamSection.style.display = 'block';
+            uploadSection.style.display = 'none';
+            initCamera();
+        });
+    }
+    
+    if (uploadRadio) {
+        uploadRadio.addEventListener('change', function() {
+            webcamSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+            stopCamera();
+        });
+    }
+    
+    if (verifyCardBtn) {
+        verifyCardBtn.addEventListener('click', async function() {
+            const method = document.querySelector('input[name="cardMethod"]:checked').value;
+            
+            try {
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'block';
+                }
+                verifyCardBtn.disabled = true;
+                
+                const formData = new FormData();
+                
+                if (method === 'upload') {
+                    if (!cardImage || !cardImage.files.length) {
+                        alert('Please select a smartcard image');
+                        if (loadingSpinner) {
+                            loadingSpinner.style.display = 'none';
+                        }
+                        verifyCardBtn.disabled = false;
+                        return;
+                    }
+                    formData.append('smartcard_image', cardImage.files[0]);
+                } else {
+                    // Capture from webcam canvas
+                    const blob = await captureCurrentFrame();
+                    formData.append('smartcard_image', blob, 'smartcard.png');
+                }
+                
+                const response = await fetch('{{ url_for("verify_smartcard_route") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await parseResponse(response);
+                
+                if (data.success) {
+                    stopCamera();
+                    if (successAlert) {
+                        successAlert.style.display = 'block';
+                        successAlert.classList.add('show');
+                    }
+                    if (uploadSection) {
+                        uploadSection.style.display = 'none';
+                    }
+                    if (webcamSection) {
+                        webcamSection.style.display = 'none';
+                    }
+                    
+                    // Auto-redirect to dashboard silently after 1 second
+                    setTimeout(() => {
+                        if (dashboardBtn) {
+                            dashboardBtn.click();
+                        }
+                    }, 1000);
+                } else {
+                    alert((data && data.error) ? data.error : 'Smartcard verification failed');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'none';
+                }
+                verifyCardBtn.disabled = false;
+            }
+        });
+    }
+
+    // Initialize camera on page load
+    initCamera();
+
+    // Stop camera when leaving page
+    window.addEventListener('beforeunload', stopCamera);
+});
+</script>
+{% endblock %}

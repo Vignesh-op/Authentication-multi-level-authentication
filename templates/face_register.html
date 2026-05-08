@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 92vh; display: flex; align-items: center; padding: 40px 0;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="glass-card">
+                    <h2 class="text-neon-secondary text-center mb-2" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; letter-spacing: 2px;">
+                        <i class="bi bi-eye-fill"></i> FACIAL BIOMETRIC
+                    </h2>
+                    <p class="text-center text-secondary mb-4" style="font-size: 0.85rem; letter-spacing: 1px;">STEP 2 OF 3: CAPTURE YOUR BIOMETRIC</p>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+                        <i class="bi bi-x-circle"></i> {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info alert-cyberpunk">
+                        <i class="bi bi-info-circle"></i> Ensure proper lighting and clear visibility of your face for accurate recognition.
+                    </div>
+                    
+                    <div class="text-center mb-4 pb-3" style="border-bottom: 2px solid rgba(0, 217, 255, 0.3);">
+                        <p class="text-secondary mb-1">Registration ID</p>
+                        <p class="text-neon-primary" style="font-family: 'Orbitron', sans-serif; font-size: 1.2rem; letter-spacing: 2px;">{{ unique_id }}</p>
+                    </div>
+                    
+                    <form id="faceForm" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <div class="alert alert-info alert-cyberpunk">
+                                <i class="bi bi-camera-video"></i> Camera stream will open. Position your face in the center for auto-detection.
+                            </div>
+                        </div>
+
+                        <!-- Camera Preview Canvas -->
+                        <div class="mb-4" style="border: 2px solid rgba(0, 217, 255, 0.5); border-radius: 8px; overflow: hidden; background: #000;">
+                            <canvas id="cameraCanvas" width="640" height="480" style="width: 100%; display: block; background: #000;"></canvas>
+                            <p id="cameraStatus" class="text-center text-secondary small mt-2" style="letter-spacing: 1px;">Initializing camera...</p>
+                        </div>
+                        
+                        <button type="button" id="captureBtn" class="btn btn-glow w-100 mb-3">
+                            <i class="bi bi-camera"></i> START CAPTURE
+                        </button>
+                        
+                        <div id="loadingSpinner" class="text-center" style="display: none;">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Processing...</span>
+                            </div>
+                            <p class="text-secondary" style="letter-spacing: 1px;">PROCESSING BIOMETRIC...</p>
+                        </div>
+                    </form>
+                    
+                    <div id="successAlert" class="alert alert-success alert-cyberpunk alert-dismissible fade" style="display: none;" role="alert">
+                        <i class="bi bi-check-circle-fill" style="color: #00ff88;"></i> Facial capture successful!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px; justify-items: center;">
+                        <a href="{{ url_for('smartcard') }}" id="nextBtn" class="btn btn-glow" style="display: none;">
+                            <i class="bi bi-arrow-right-circle"></i> CONTINUE
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const successAlert = document.getElementById('successAlert');
+    const nextBtn = document.getElementById('nextBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const canvas = document.getElementById('cameraCanvas');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const ctx = canvas.getContext('2d');
+    let stream = null;
+    let video = null;
+
+    // Initialize camera preview
+    async function initCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480 } 
+            });
+            
+            video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+            
+            cameraStatus.textContent = '✓ Camera ready - Position your face and click START CAPTURE';
+            
+            // Draw video frames to canvas
+            function drawFrame() {
+                if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                }
+                requestAnimationFrame(drawFrame);
+            }
+            drawFrame();
+        } catch (error) {
+            cameraStatus.textContent = '✗ Camera access denied. Please allow camera permission.';
+            console.error('Camera error:', error);
+        }
+    }
+
+    // Initialize camera when page loads
+    initCamera();
+
+    if (captureBtn) {
+        captureBtn.addEventListener('click', async function() {
+            try {
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'block';
+                }
+                captureBtn.disabled = true;
+                
+                // Stop camera stream
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                const formData = new FormData();
+                
+                const response = await fetch('{{ url_for("capture_face") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'none';
+                }
+                
+                if (data.success) {
+                    if (successAlert) {
+                        successAlert.style.display = 'block';
+                    }
+                    if (nextBtn) {
+                        nextBtn.style.display = 'block';
+                    }
+                    captureBtn.style.display = 'none';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to capture face'));
+                    captureBtn.disabled = false;
+                    // Restart camera
+                    initCamera();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error capturing face: ' + error.message);
+                captureBtn.disabled = false;
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'none';
+                }
+                // Restart camera
+                initCamera();
+            }
+        });
+    }
+
+    // Cleanup on page leave
+    window.addEventListener('beforeunload', function() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+});
+</script>
+{% endblock %}

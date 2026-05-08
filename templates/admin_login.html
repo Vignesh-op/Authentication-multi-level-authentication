@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 85vh; display: flex; align-items: center; padding: 60px 0;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="glass-card">
+                    <h2 class="text-neon-primary text-center mb-2" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; letter-spacing: 2px;">
+                        <i class="bi bi-shield-lock"></i> ADMIN LOGIN
+                    </h2>
+                    <p class="text-center text-secondary mb-4" style="font-size: 0.85rem; letter-spacing: 1px;">ADMINISTRATOR PANEL</p>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle"></i> {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST">
+                        <div class="mb-4">
+                            <label for="email" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">EMAIL</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="admin@authsafe.co.in" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">PASSWORD</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="••••••" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-glow w-100 mb-3">
+                            <i class="bi bi-enter"></i> ADMIN LOGIN
+                        </button>
+                    </form>
+
+                    <hr class="bg-secondary">
+                    
+                    <a href="{{ url_for('homepage') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-left"></i> BACK TO HOME
+                    </a>
+
+                    <div class="mt-4 p-3" style="background: rgba(0, 217, 255, 0.1); border-radius: 5px; border-left: 4px solid #00d9ff;">
+                        <small style="color: #00d9ff;"><strong>ℹ️ Admin Access:</strong></small>
+                        <p style="font-size: 0.85rem; color: #999; margin-bottom: 0; margin-top: 8px;">
+                            This panel is restricted to authorized administrators only. <br/>
+                            Unauthorized access attempts are logged.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

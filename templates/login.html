@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 85vh; display: flex; align-items: center; padding: 60px 0;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="glass-card">
+                    <h2 class="text-neon-primary text-center mb-4" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; letter-spacing: 2px;">
+                        <i class="bi bi-shield-lock"></i> LOGIN
+                    </h2>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle"></i> {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Progress Indicator -->
+                    <div class="auth-progress mb-5">
+                        <div class="progress-step active">
+                            <div class="progress-step-circle">1</div>
+                            <div class="progress-step-label">PIN</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-step-circle">2</div>
+                            <div class="progress-step-label">FACE</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-step-circle">3</div>
+                            <div class="progress-step-label">CARD</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Verifying Popup -->
+                    <div id="verifyingModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; display: none;">
+                        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 3px solid #00d9ff; border-radius: 15px; padding: 40px; text-align: center; max-width: 500px; box-shadow: 0 0 30px rgba(0, 217, 255, 0.5);">
+                            <div class="spinner-border" style="color: #00d9ff; width: 3rem; height: 3rem; margin-bottom: 20px;" role="status">
+                                <span class="visually-hidden">Verifying...</span>
+                            </div>
+                            <h2 style="color: #00d9ff; font-size: 1.5rem; margin: 20px 0; font-family: 'Orbitron', sans-serif; letter-spacing: 2px;">VERIFYING PIN</h2>
+                            <p style="color: #999; font-size: 0.9rem;">Authenticating credentials...</p>
+                        </div>
+                    </div>
+
+                    <form method="POST" id="loginForm">
+                        <!-- Authentication Method Selection -->
+                        <div class="mb-4">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="auth_method" id="auth_email" value="email" checked>
+                                <label class="btn" for="auth_email" style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px; font-size: 1.1rem; font-weight: bold; background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%); color: #000; border: 2px solid #00d9ff;">
+                                    <i class="bi bi-envelope"></i> EMAIL
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="auth_method" id="auth_uuid" value="uuid">
+                                <label class="btn" for="auth_uuid" style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px; font-size: 1.1rem; font-weight: bold; background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%); color: #000; border: 2px solid #00d9ff;">
+                                    <i class="bi bi-credit-card"></i> SMART CARD UUID
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Email Input -->
+                        <div class="mb-4" id="email_input_group" style="display: block;">
+                            <label for="email" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">EMAIL</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="doejohn@authsafe.in" required>
+                        </div>
+
+                        <!-- UUID Input -->
+                        <div class="mb-4" id="uuid_input_group" style="display: none;">
+                            <label for="uuid" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">UUID</label>
+                            <input type="text" class="form-control" id="uuid" name="uuid" value="AUTHSAFE-" placeholder="AUTHSAFE-XXXXXX" style="text-transform: uppercase; font-family: 'Courier New', monospace; font-weight: bold;">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="pin" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">PIN</label>
+                            <input type="password" class="form-control" id="pin" name="pin" required placeholder="••••" inputmode="numeric" maxlength="6">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-glow w-100 mb-3">
+                            <i class="bi bi-enter"></i> AUTHENTICATE
+                        </button>
+                    </form>
+
+                    <script>
+                        // Toggle email/uuid input fields and required attribute based on selection
+                        document.getElementById('auth_email').addEventListener('change', function() {
+                            if (this.checked) {
+                                document.getElementById('email_input_group').style.display = 'block';
+                                document.getElementById('uuid_input_group').style.display = 'none';
+                                document.getElementById('email').setAttribute('required', 'required');
+                                document.getElementById('uuid').removeAttribute('required');
+                            }
+                        });
+
+                        document.getElementById('auth_uuid').addEventListener('change', function() {
+                            if (this.checked) {
+                                document.getElementById('email_input_group').style.display = 'none';
+                                document.getElementById('uuid_input_group').style.display = 'block';
+                                document.getElementById('uuid').setAttribute('required', 'required');
+                                document.getElementById('email').removeAttribute('required');
+                            }
+                        });
+
+                        // Set initial state (EMAIL is checked by default)
+                        document.getElementById('email').setAttribute('required', 'required');
+
+                        // Add CSS for button active states
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                            .btn-check:checked + .btn {
+                                background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%) !important;
+                                color: #000 !important;
+                                box-shadow: 0 0 20px rgba(0, 255, 0, 0.8) !important;
+                                text-shadow: 0 0 5px rgba(0, 255, 0, 0.6) !important;
+                            }
+                            .btn-check:not(:checked) + .btn {
+                                background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%) !important;
+                                color: #000 !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+
+                        // Handle UUID field to prevent deletion of "AUTHSAFE-" prefix
+                        const uuidField = document.getElementById('uuid');
+                        const PREFIX = 'AUTHSAFE-';
+
+                        // Focus handler - position cursor after prefix
+                        uuidField.addEventListener('focus', function() {
+                            if (this.value === PREFIX) {
+                                this.setSelectionRange(PREFIX.length, PREFIX.length);
+                            }
+                        });
+
+                        // Input handler - ensure prefix is always present
+                        uuidField.addEventListener('input', function() {
+                            if (!this.value.startsWith(PREFIX)) {
+                                this.value = PREFIX + this.value.replace(PREFIX, '');
+                            }
+                        });
+
+                        // Keydown handler - prevent deletion of prefix
+                        uuidField.addEventListener('keydown', function(e) {
+                            const cursorPos = this.selectionStart;
+                            if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPos <= PREFIX.length) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        // Show verifying modal only when PIN is entered and form is being submitted
+                        document.getElementById('loginForm').addEventListener('submit', function(e) {
+                            const pin = document.getElementById('pin').value;
+                            // Only show modal if PIN is actually entered
+                            if (pin && pin.trim().length > 0) {
+                                const modal = document.getElementById('verifyingModal');
+                                if (modal) {
+                                    modal.style.display = 'flex';
+                                    // Auto-close after 1 second
+                                    setTimeout(() => {
+                                        modal.style.display = 'none';
+                                    }, 1000);
+                                }
+                            }
+                        });
+                    </script>
+                    
+                    <div class="section-divider" style="margin: 25px 0;"></div>
+                    
+                    <p class="text-center text-secondary mb-0" style="font-size: 0.9rem;">
+                        New to AuthSafe? <a href="{{ url_for('register') }}" class="text-neon-secondary fw-bold text-decoration-none">CREATE ACCOUNT</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,11 @@
+flask
+flask-pymongo
+pymongo
+bcrypt
+opencv-python
+face-recognition
+qrcode
+pyzbar
+pillow
+numpy
+python-dotenv

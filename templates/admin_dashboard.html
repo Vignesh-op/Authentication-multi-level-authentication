@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 100vh; padding: 40px 0;">
+    <div class="container-fluid">
+        <!-- Welcome Section -->
+        <div class="row mb-5 align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 text-neon-primary" style="margin-bottom: 15px;">Welcome, Admin! 👋</h1>
+                <p class="lead text-light">System administration and user management portal.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger btn-lg">
+                    <i class="bi bi-box-arrow-right"></i> LOGOUT
+                </a>
+            </div>
+        </div>
+
+        <!-- Admin Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-neon-primary" style="font-family: 'Orbitron', sans-serif; font-size: 1.8rem; letter-spacing: 2px;">
+                    <i class="bi bi-shield-lock"></i> ADMIN DASHBOARD
+                </h2>
+                <p class="text-secondary" style="letter-spacing: 1px;">SYSTEM ADMINISTRATION & USER MANAGEMENT</p>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark border-info">
+                    <div class="card-body text-center">
+                        <h5 class="text-secondary" style="letter-spacing: 1px;">TOTAL USERS</h5>
+                        <h2 class="text-neon-primary" style="font-family: 'Orbitron', sans-serif; font-size: 2.5rem;">{{ total_users }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-success">
+                    <div class="card-body text-center">
+                        <h5 class="text-secondary" style="letter-spacing: 1px;">ACTIVE STATUS</h5>
+                        <h2 class="text-success" style="font-family: 'Orbitron', sans-serif; font-size: 2rem;"><i class="bi bi-check-circle-fill"></i></h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-warning">
+                    <div class="card-body text-center">
+                        <h5 class="text-secondary" style="letter-spacing: 1px;">SMART CARDS</h5>
+                        <h2 class="text-warning" style="font-family: 'Orbitron', sans-serif; font-size: 2rem;">{{ total_users }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark border-info">
+                    <div class="card-body text-center">
+                        <h5 class="text-secondary" style="letter-spacing: 1px;">SYSTEM</h5>
+                        <p class="text-info mb-0" style="font-size: 0.9rem;"><em>v3.0 Secure<br/>Multi-Factor Auth</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        {% if error %}
+        <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- Users Table -->
+        <div class="card bg-dark border-info mb-4">
+            <div class="card-header bg-dark border-info">
+                <h5 class="mb-0 text-neon-primary" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+                    <i class="bi bi-people"></i> REGISTERED USERS
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if users %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0" style="border-color: rgba(0, 217, 255, 0.3);">
+                        <thead style="border-bottom: 2px solid rgba(0, 217, 255, 0.5);">
+                            <tr>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-hash"></i> #
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-person"></i> NAME
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-envelope"></i> EMAIL
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-credit-card"></i> SMART CARD ID
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-calendar-event"></i> REGISTERED
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px; text-align: center;">
+                                    <i class="bi bi-download"></i> ACTION
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr style="border-bottom: 1px solid rgba(0, 217, 255, 0.2);">
+                                <td style="color: #00d9ff; font-weight: bold;">{{ loop.index }}</td>
+                                <td style="color: #00ff88;">{{ user.name }}</td>
+                                <td style="color: #00d9ff; font-size: 0.9rem;">{{ user.email }}</td>
+                                <td>
+                                    <code style="color: #ffaa00; background: rgba(0, 0, 0, 0.5); padding: 4px 8px; border-radius: 3px; font-size: 0.85rem;">
+                                        {{ user.unique_id }}
+                                    </code>
+                                </td>
+                                <td style="color: #999; font-size: 0.9rem;">
+                                    {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if user.smartcard_path and user.smartcard_path %}
+                                    <a href="{{ url_for('download_smartcard_admin', unique_id=user.unique_id) }}" 
+                                       class="btn btn-sm btn-outline-success" 
+                                       title="Download Smart Card">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                    {% else %}
+                                    <span class="text-danger" title="No smart card generated">
+                                        <i class="bi bi-x-circle"></i> N/A
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center">
+                    <p class="text-secondary" style="letter-spacing: 1px;">No users registered yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Footer Stats -->
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info alert-cyberpunk">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>System Information:</strong> 
+                    Showing {{ total_users }} registered user(s). Smart cards can be downloaded for distribution or backup purposes.
+                    All authentication factors are verified before user account activation.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .glass-card, .card {
+        background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(45, 45, 45, 0.9) 100%) !important;
+        border: 1px solid rgba(0, 217, 255, 0.3) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-glow {
+        background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+        border: 2px solid #00ff88;
+        color: #000;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.5), inset 0 0 20px rgba(0, 255, 136, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .btn-glow:hover {
+        box-shadow: 0 0 30px rgba(0, 217, 255, 0.8), inset 0 0 20px rgba(0, 255, 136, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .text-neon-primary {
+        color: #00d9ff;
+        text-shadow: 0 0 10px #00d9ff;
+    }
+
+    .alert-cyberpunk {
+        background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 100, 150, 0.1) 100%);
+        border: 2px solid rgba(0, 217, 255, 0.5);
+        color: #00d9ff;
+    }
+</style>
+{% endblock %}

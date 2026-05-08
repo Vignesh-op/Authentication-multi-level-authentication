@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section style="min-height: 92vh; display: flex; align-items: center; padding: 40px 0;">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-6">
+                <div class="glass-card">
+                    <h2 class="text-neon-primary text-center mb-2" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; letter-spacing: 2px;">
+                        <i class="bi bi-person-plus-fill"></i> CREATE ACCOUNT
+                    </h2>
+                    <p class="text-center text-secondary mb-4" style="font-size: 0.85rem; letter-spacing: 1px;">STEP 1 OF 3: ACCOUNT SETUP</p>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger alert-cyberpunk alert-dismissible fade show" role="alert">
+                        <i class="bi bi-x-circle"></i> {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% if error == 'password already taken , use unique password' %}
+                    <script>
+                        alert('password already taken , use unique password');
+                    </script>
+                    {% endif %}
+                    {% endif %}
+                    
+                    <!-- Progress Indicator -->
+                    <div class="auth-progress mb-4">
+                        <div class="progress-step active">
+                            <div class="progress-step-circle">1</div>
+                            <div class="progress-step-label">INFO</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-step-circle">2</div>
+                            <div class="progress-step-label">FACE</div>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-step-circle">3</div>
+                            <div class="progress-step-label">CARD</div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" id="registerForm">
+                        <div class="mb-4">
+                            <label for="name" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">FULL NAME</label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="John Doe">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">EMAIL</label>
+                            <input type="email" class="form-control" id="email" name="email" required placeholder="doejohn@authsafe.in">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="pin" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">CREATE PIN</label>
+                            <input type="password" class="form-control" id="pin" name="pin" required placeholder="••••" inputmode="numeric" maxlength="6">
+                            <small class="text-secondary d-block mt-2">• Must be 4-6 digits</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="pin_confirm" class="form-label text-neon-primary mb-2" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">CONFIRM PIN</label>
+                            <input type="password" class="form-control" id="pin_confirm" name="pin_confirm" required placeholder="••••" inputmode="numeric" maxlength="6">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-glow w-100 mb-3">
+                            <i class="bi bi-arrow-right-circle"></i> CONTINUE TO FACE
+                        </button>
+                    </form>
+                    
+                    <div class="section-divider" style="margin: 25px 0;"></div>
+                    
+                    <p class="text-center text-secondary mb-0" style="font-size: 0.9rem;">
+                        Already registered? <a href="{{ url_for('login') }}" class="text-neon-secondary fw-bold text-decoration-none">LOGIN</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

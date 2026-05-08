@@ -1,0 +1,73 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+
+# MongoDB
+*.log
+data/
+mongodb/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Uploads and generated files
+static/uploads/*
+static/cards/*
+!static/uploads/.gitkeep
+!static/cards/.gitkeep
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Misc
+.venv
+.sass-cache/
+.python-version
+node_modules/
+package-lock.json
+npm-debug.log

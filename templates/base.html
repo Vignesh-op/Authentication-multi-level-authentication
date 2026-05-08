@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuthSafe - Next-Gen Identity Authentication</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Particle Background -->
+    <div class="particle-bg" id="particleBg"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/" style="gap: 12px;">
+                <img src="{{ url_for('static', filename='images/authsafe_logo.png') }}" alt="AuthSafe Logo" class="navbar-logo" style="height: 50px; width: auto;">
+                <span style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px; font-weight: 700; font-size: 1.3rem;">AUTHSAFE</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if user_logged_in %}
+                    <li class="nav-item">
+                        <span class="nav-link text-neon-primary">{{ user_name }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">LOGOUT</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}"><i class="bi bi-person-lock"></i> USER LOGIN</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}"><i class="bi bi-person-plus"></i> REGISTER</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_login') }}" style="color: #00d9ff !important;"><i class="bi bi-shield-lock"></i> ADMIN</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Particle Background Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const particleBg = document.getElementById('particleBg');
+            if (particleBg && particleBg.children.length === 0) {
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle' + (Math.random() > 0.7 ? ' alt' : '');
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = Math.random() * 100 + '%';
+                    particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                    particle.style.animationDelay = Math.random() * 5 + 's';
+                    particleBg.appendChild(particle);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
