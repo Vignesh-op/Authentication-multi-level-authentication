@@ -1,10 +1,10 @@
 @echo off
-REM ===== AuthSafe Quick Start Script =====
-REM This script automates the setup and running of AuthSafe
+REM ===== Authentication Quick Start Script =====
+REM This script automates the setup and running of Authentication
 
 echo.
 echo ╔════════════════════════════════════════════════════╗
-echo ║       AuthSafe - Multi-Factor Authentication       ║
+echo ║       Authentication - Multi-Factor Authentication       ║
 echo ║              Quick Start Script                    ║
 echo ╚════════════════════════════════════════════════════╝
 echo.
@@ -102,7 +102,7 @@ if /i not "%mongodb%"=="yes" (
 REM Start Flask application
 echo.
 echo ╔════════════════════════════════════════════════════╗
-echo ║          Starting AuthSafe Application            ║
+echo ║          Starting Authentication Application            ║
 echo ╚════════════════════════════════════════════════════╝
 echo.
 echo 🚀 Starting Flask server...

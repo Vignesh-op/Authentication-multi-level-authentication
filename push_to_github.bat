@@ -1,12 +1,12 @@
 @echo off
-REM AuthSafe - Push to GitHub Script
+REM Authentication - Push to GitHub Script
 REM This script initializes git and pushes the project to GitHub
 
 setlocal enabledelayedexpansion
 
 echo.
 echo ╔════════════════════════════════════════════════════╗
-echo ║       AuthSafe - GitHub Push Script                ║
+echo ║       Authentication - GitHub Push Script                ║
 echo ╚════════════════════════════════════════════════════╝
 echo.
 
@@ -38,7 +38,7 @@ echo 📝 Configuring Git...
 
 REM Configure Git (optional - customize as needed)
 git config user.name "Vignesh" 2>nul
-git config user.email "Vignesh423@authsafe.co.in" 2>nul
+git config user.email "Vignesh423@authentication.co.in" 2>nul
 
 echo.
 echo 📋 Checking git status...
@@ -50,7 +50,7 @@ git add .
 
 echo.
 echo 💾 Creating initial commit...
-git commit -m "Initial commit: AuthSafe Multi-Factor Authentication System" 2>nul
+git commit -m "Initial commit: Authentication Multi-Factor Authentication System" 2>nul
 
 if errorlevel 1 (
     echo ℹ️  Repository already up to date
@@ -61,7 +61,7 @@ if errorlevel 1 (
 echo.
 echo 🔗 Adding remote repository...
 git remote remove origin 2>nul
-git remote add origin https://github.com/Vignesh-op/Authsafe-multi-level-authentication.git
+git remote add origin https://github.com/Vignesh-op/Authentication-multi-level-authentication.git
 
 echo.
 echo 🚀 Pushing to GitHub...
@@ -90,6 +90,6 @@ if errorlevel 1 (
 echo.
 echo ✅ SUCCESS! Your project has been pushed to GitHub!
 echo.
-echo 📍 Repository URL: https://github.com/Vignesh-op/Authsafe-multi-level-authentication
+echo 📍 Repository URL: https://github.com/Vignesh-op/Authentication-multi-level-authentication
 echo.
 pause

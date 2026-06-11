@@ -204,11 +204,11 @@ def verify_qr_code(qr_data, unique_id, secret_key=None):
     """
     Verify if QR code data matches unique_id.
 
-    Handles both signed payloads (``{uuid}:{hmac}``) and legacy plain
-    UUID payloads for backward compatibility.
+    Handles new format with NAME|UNIQUE_ID, signed payloads (``{uuid}:{hmac}``), 
+    and legacy plain UUID payloads for backward compatibility.
 
     Args:
-        qr_data (str): Data decoded from the QR code.
+        qr_data (str): Data decoded from the QR code (can be "NAME|UNIQUE_ID" format).
         unique_id (str): User's unique ID from the session.
         secret_key (str | None): App secret key used during card generation.
 
@@ -218,8 +218,22 @@ def verify_qr_code(qr_data, unique_id, secret_key=None):
     if qr_data is None or unique_id is None:
         return False
 
-    qr_data   = qr_data.strip().upper()
+    qr_data   = qr_data.strip()
     unique_id = unique_id.strip().upper()
+    
+    # New format: "NAME|UNIQUE_ID"
+    if '|' in qr_data:
+        parts = qr_data.split('|', 1)
+        qr_uid = parts[1].strip().upper()
+        
+        # Verify the unique_id portion matches
+        if qr_uid != unique_id:
+            return False
+        
+        # Name|UID format is valid if UID matches
+        return True
+    
+    qr_data = qr_data.upper()
 
     # Signed payload: "{UUID}:{HMAC}"
     if ':' in qr_data:
@@ -242,6 +256,32 @@ def verify_qr_code(qr_data, unique_id, secret_key=None):
         return False
 
     return qr_data == unique_id
+
+def extract_qr_info(qr_data):
+    """
+    Extract name and ID from QR code data.
+    Handles "NAME|UNIQUE_ID" format, returning both components.
+    
+    Args:
+        qr_data (str): Data decoded from the QR code
+        
+    Returns:
+        tuple: (name, unique_id) or (None, unique_id) if not in NAME|ID format
+    """
+    if qr_data is None:
+        return None, None
+    
+    qr_data = qr_data.strip()
+    
+    # New format: "NAME|UNIQUE_ID"
+    if '|' in qr_data:
+        parts = qr_data.split('|', 1)
+        name = parts[0].strip()
+        unique_id = parts[1].strip()
+        return name, unique_id
+    
+    # Legacy format: just UNIQUE_ID
+    return None, qr_data
 
 def detect_qr_in_image(image_cv2):
     """

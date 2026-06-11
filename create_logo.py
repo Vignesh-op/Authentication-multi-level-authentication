@@ -1,13 +1,13 @@
 """
-Create AuthSafe Logo - Professional Cybersecurity Logo with Wireframe Face, Smart Card, and Padlock
+Create Authentication Logo - Professional Cybersecurity Logo with Wireframe Face, Smart Card, and Padlock
 Dark theme with glowing accents, premium tech feel
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
 import math
 
-def create_authsafe_logo():
-    """Create professional AuthSafe logo with advanced cybersecurity design"""
+def create_authentication_logo():
+    """Create professional Authentication logo with advanced cybersecurity design"""
     
     # Create main image with dark background
     logo_width = 800
@@ -196,7 +196,7 @@ def create_authsafe_logo():
         draw.line([point, (shield_x, shield_y + shield_h // 2)],
                  fill=(0, 200, 200, 100), width=1)
     
-    # ===== TEXT: AuthSafe =====
+    # ===== TEXT: Authentication =====
     try:
         title_font = ImageFont.truetype("arial.ttf", 80)
         subtitle_font = ImageFont.truetype("arial.ttf", 28)
@@ -206,8 +206,8 @@ def create_authsafe_logo():
         subtitle_font = ImageFont.load_default()
         footer_font = ImageFont.load_default()
     
-    # AuthSafe text with gradient effect (simulated with layering)
-    auth_text = "AuthSafe"
+    # Authentication text with gradient effect (simulated with layering)
+    auth_text = "Authentication"
     auth_y = logo_height - 280
     
     # Text shadow (dark blue)
@@ -252,13 +252,13 @@ def create_authsafe_logo():
     os.makedirs(output_dir, exist_ok=True)
     
     # Save as PNG
-    logo.save(os.path.join(output_dir, 'authsafe-logo.png'), 'PNG')
-    print("✓ Professional AuthSafe logo created: static/images/authsafe-logo.png")
+    logo.save(os.path.join(output_dir, 'authentication-logo.png'), 'PNG')
+    print("✓ Professional Authentication logo created: static/images/authentication-logo.png")
     
     # Create smaller version
     logo_small = logo.resize((256, 320), Image.Resampling.LANCZOS)
-    logo_small.save(os.path.join(output_dir, 'authsafe-logo-small.png'), 'PNG')
-    print("✓ Small logo created: static/images/authsafe-logo-small.png")
+    logo_small.save(os.path.join(output_dir, 'authentication-logo-small.png'), 'PNG')
+    print("✓ Small logo created: static/images/authentication-logo-small.png")
 
 if __name__ == '__main__':
-    create_authsafe_logo()
+    create_authentication_logo()

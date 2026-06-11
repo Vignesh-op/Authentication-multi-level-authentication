@@ -1,5 +1,5 @@
 """
-Resize AuthSafe Logo for navbar display
+Resize Authentication Logo for navbar display
 This script creates a smaller version of the main logo
 """
 from PIL import Image
@@ -9,8 +9,8 @@ def create_logo_variants():
     """Create logo variants for different uses"""
     
     images_dir = os.path.join(os.path.dirname(__file__), 'static', 'images')
-    main_logo_path = os.path.join(images_dir, 'authsafe-logo.png')
-    small_logo_path = os.path.join(images_dir, 'authsafe-logo-small.png')
+    main_logo_path = os.path.join(images_dir, 'authentication-logo.png')
+    small_logo_path = os.path.join(images_dir, 'authentication-logo-small.png')
     
     if not os.path.exists(main_logo_path):
         print("✗ Main logo not found at:", main_logo_path)

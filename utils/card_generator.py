@@ -9,17 +9,20 @@ import tempfile
 def _load_logo():
     """Try known logo filenames and return PIL image or None."""
     candidate_paths = [
-        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authsafe-logo.png'),
-        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authsafe_logo.png'),
+        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authentication-logo.png'),
+        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authentication_logo.png'),
+        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authentication.png'),
         os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'logo.png'),
-        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'authsafe.png'),
+        os.path.join(os.path.dirname(__file__), '..', 'static', 'images', 'Authentication.png'),
     ]
     for path in candidate_paths:
         if os.path.exists(path):
             try:
-                return Image.open(path).convert("RGBA")
-            except Exception:
-                return None
+                img = Image.open(path).convert("RGBA")
+                return img
+            except Exception as e:
+                print(f"Warning: Could not load logo from {path}: {e}")
+                continue
     return None
 
 
@@ -44,10 +47,10 @@ def _draw_card_base(card, draw, title_font, text_font, small_font):
     if logo:
         logo = logo.resize((76, 76), Image.Resampling.LANCZOS)
         card.paste(logo, (24, 22), logo)
-        draw.text((114, 30), "AuthSafe", fill=(255, 255, 255), font=title_font)
+        draw.text((114, 30), "Authentication", fill=(255, 255, 255), font=title_font)
         draw.text((116, 76), "Smart Identity Card", fill=(220, 233, 255), font=small_font)
     else:
-        draw.text((24, 30), "AuthSafe", fill=(255, 255, 255), font=title_font)
+        draw.text((24, 30), "Authentication", fill=(255, 255, 255), font=title_font)
         draw.text((24, 76), "Smart Identity Card", fill=(220, 233, 255), font=small_font)
 
 def _passport_photo_from_cv2(face_image_cv2, target_width, target_height):
@@ -133,10 +136,12 @@ def generate_smartcard(name, unique_id, face_image_cv2, output_path):
                 print(f"Error processing face image: {e}")
         
         # Generate and embed QR code using a guaranteed-cleanup temp file.
+        # QR code now contains "NAME|UNIQUE_ID" for full info scanning
+        qr_data = f"{name}|{unique_id}"
         qr_temp_fd, qr_temp_path = tempfile.mkstemp(suffix='.png')
         os.close(qr_temp_fd)  # close fd; generate_qr_code opens the path itself
         try:
-            if generate_qr_code(unique_id, qr_temp_path, secret_key=None):
+            if generate_qr_code(qr_data, qr_temp_path, secret_key=None):
                 try:
                     qr_image = Image.open(qr_temp_path)
                     qr_image = qr_image.resize((190, 190), Image.Resampling.LANCZOS)
@@ -204,10 +209,12 @@ def create_placeholder_card(name, unique_id, output_path):
         draw.text((800, 230), "NO PHOTO", fill=(115, 124, 144), font=text_font)
         
         # Generate and embed QR code using a guaranteed-cleanup temp file.
+        # QR code now contains "NAME|UNIQUE_ID" for full info scanning
+        qr_data = f"{name}|{unique_id}"
         qr_temp_fd, qr_temp_path = tempfile.mkstemp(suffix='.png')
         os.close(qr_temp_fd)
         try:
-            if generate_qr_code(unique_id, qr_temp_path, secret_key=None):
+            if generate_qr_code(qr_data, qr_temp_path, secret_key=None):
                 try:
                     qr_image = Image.open(qr_temp_path)
                     qr_image = qr_image.resize((190, 190), Image.Resampling.LANCZOS)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AuthSafe Health Check Script
+Authentication Health Check Script
 Verifies database connectivity and basic functionality
 """
 
@@ -32,22 +32,22 @@ def check_mongodb_connection():
         return False
 
 def check_database_setup():
-    """Check if authsafe database is set up"""
+    """Check if authentication database is set up"""
     try:
         from pymongo import MongoClient
         client = MongoClient('mongodb://localhost:27017/')
-        db = client['authsafe']
+        db = client['authentication']
         
         # Check if users collection exists
         if 'users' in db.list_collection_names():
             user_count = db.users.count_documents({})
-            print(f"✓ Database:  authsafe.users collection ({user_count} users)")
+            print(f"✓ Database:  authentication.users collection ({user_count} users)")
             return True
         else:
-            print("✓ Database:  authsafe database exists (users collection will be created on first registration)")
+            print("✓ Database:  authentication database exists (users collection will be created on first registration)")
             return True
     except Exception as e:
-        print("✗ Database:  Cannot access authsafe database")
+        print("✗ Database:  Cannot access authentication database")
         return False
 
 def check_dependencies():
@@ -107,7 +107,7 @@ def check_file_structure():
 
 def main():
     print("\n" + "="*60)
-    print("AuthSafe - Health Check")
+    print("Authentication - Health Check")
     print("="*60 + "\n")
     
     checks = [
@@ -139,7 +139,7 @@ def main():
     
     print("\n" + "-"*60)
     if all_passed:
-        print("\n✓ All checks passed! You can start AuthSafe:\n")
+        print("\n✓ All checks passed! You can start Authentication:\n")
         print("  1. Ensure MongoDB is running:")
         print("     Windows: net start MongoDB")
         print("     macOS:   brew services start mongodb-community")

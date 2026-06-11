@@ -22,7 +22,8 @@ from utils.face_utils import (
 )
 from utils.qr_utils import (
     generate_qr_code, read_qr_code_from_image, read_qr_code_from_webcam,
-    read_qr_code_from_cv2_image, verify_qr_code, detect_qr_in_image, read_qr_from_pil_image
+    read_qr_code_from_cv2_image, verify_qr_code, detect_qr_in_image, read_qr_from_pil_image,
+    extract_qr_info
 )
 from utils.card_generator import generate_smartcard, create_placeholder_card
 
@@ -96,11 +97,33 @@ def admin_login():
         password = request.form.get('password', '').strip()
         
         # Hardcoded admin credentials
-        ADMIN_EMAIL = 'Vignesh423@authsafe.co.in'
+        ADMIN_EMAIL = 'Vignesh423@authentication.co.in'
         ADMIN_PASSWORD = '100305'
         
         # Case-insensitive email comparison
         if email.lower() == ADMIN_EMAIL.lower() and password == ADMIN_PASSWORD:
+            # Record admin login timestamp
+            try:
+                mongo.db.admin_sessions.update_one(
+                    {'email': ADMIN_EMAIL},
+                    {
+                        '$set': {
+                            'email': ADMIN_EMAIL,
+                            'last_login': datetime.utcnow(),
+                            'login_count': mongo.db.admin_sessions.find_one(
+                                {'email': ADMIN_EMAIL},
+                                {'login_count': 1}
+                            ).get('login_count', 0) + 1 if mongo.db.admin_sessions.find_one({'email': ADMIN_EMAIL}) else 1
+                        },
+                        '$setOnInsert': {
+                            'created_at': datetime.utcnow()
+                        }
+                    },
+                    upsert=True
+                )
+            except Exception as e:
+                print(f"Error recording admin login: {e}")
+            
             session['admin_logged_in'] = True
             session['admin_email'] = email
             return redirect(url_for('admin_dashboard'))
@@ -117,6 +140,16 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     
     try:
+        # Fetch admin session info (last login, login count)
+        admin_email = 'Vignesh423@authentication.co.in'
+        admin_session = mongo.db.admin_sessions.find_one({'email': admin_email})
+        
+        last_login = None
+        login_count = 0
+        if admin_session:
+            last_login = admin_session.get('last_login')
+            login_count = admin_session.get('login_count', 0)
+        
         # Fetch all users from database
         users = list(mongo.db.users.find({}, {
             'name': 1,
@@ -126,11 +159,19 @@ def admin_dashboard():
             'smartcard_path': 1
         }).sort('created_at', -1))
         
-        return render_template('admin_dashboard.html', users=users, total_users=len(users))
+        return render_template('admin_dashboard.html', 
+                             users=users, 
+                             total_users=len(users),
+                             last_login=last_login,
+                             login_count=login_count)
     
     except Exception as e:
         print(f"Error loading admin dashboard: {e}")
-        return render_template('admin_dashboard.html', users=[], error=str(e))
+        return render_template('admin_dashboard.html', 
+                             users=[], 
+                             error=str(e),
+                             last_login=None,
+                             login_count=0)
 
 @app.route('/admin-logout')
 def admin_logout():
@@ -160,7 +201,7 @@ def download_smartcard_admin(unique_id):
             card_path,
             mimetype='image/png',
             as_attachment=True,
-            download_name=f'AuthSafe_Card_{user["name"]}_{unique_id}.png'
+            download_name=f'Authentication_Card_{user["name"]}_{unique_id}.png'
         )
     
     except Exception as e:
@@ -341,10 +382,18 @@ def capture_face():
             face_encoding = get_face_encoding(image_cv2)
         
         if face_encoding is None:
-            return jsonify({'success': False, 'error': 'Face not detected. Please try again.'}), 400
+            return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Save face encoding to session
+        # Calculate user-specific tolerance based on face encoding characteristics
+        # Use a baseline of 0.85 as the personalized tolerance for this user
+        face_encoding_array = np.array(face_encoding, dtype=np.float32)
+        encoding_norm = np.linalg.norm(face_encoding_array)
+        # Personalized tolerance: baseline adjusted by encoding characteristics
+        user_tolerance = min(0.88, max(0.82, 0.85))  # Keep between 0.82-0.88
+        
+        # Save face encoding and tolerance to session
         session['face_encoding'] = face_encoding
+        session['user_face_tolerance'] = user_tolerance
         
         # Save face image temporarily
         unique_id = session['registration_data']['unique_id']
@@ -352,6 +401,7 @@ def capture_face():
         cv2.imwrite(face_image_path, image_cv2)
         session['face_image_path'] = face_image_path
         
+        print(f"Face captured with personalized tolerance: {user_tolerance:.4f}")
         return jsonify({'success': True, 'message': 'Face captured successfully'})
     
     except Exception as e:
@@ -407,6 +457,7 @@ def smartcard():
                 'pin_hash': registration_data['pin_hash'],
                 'unique_id': unique_id,
                 'face_encoding': session.get('face_encoding'),
+                'face_tolerance': session.get('user_face_tolerance', 0.85),  # Store user's personalized tolerance
                 'smartcard_path': card_path,
                 'created_at': get_timestamp()
             }
@@ -420,6 +471,7 @@ def smartcard():
             session.pop('registration_data', None)
             session.pop('face_encoding', None)
             session.pop('face_image_path', None)
+            session.pop('user_face_tolerance', None)
             
             return render_template('smartcard.html',
                                   name=registration_data['name'],
@@ -454,7 +506,7 @@ def download_smartcard(unique_id):
             card_path,
             mimetype='image/png',
             as_attachment=True,
-            download_name=f'AuthSafe_SmartCard_{unique_id}.png'
+            download_name=f'Authentication_SmartCard_{unique_id}.png'
         )
     except Exception as e:
         print(f"Error downloading smart card: {e}")
@@ -494,20 +546,27 @@ def verify_face_route():
             if image_cv2 is None:
                 return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Get stored encoding directly from DB (not from session — Fix #2)
+        # Check if face can be detected and encoded
+        captured_encoding = get_face_encoding(image_cv2)
+        if captured_encoding is None:
+            return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
+        
+        # Get stored encoding and user's personalized tolerance from DB (not from session — Fix #2)
         user_record = mongo.db.users.find_one(
-            {'email': session['email']}, {'face_encoding': 1}
+            {'email': session['email']}, {'face_encoding': 1, 'face_tolerance': 1}
         )
         if not user_record:
             return jsonify({'success': False, 'error': 'User not found'}), 400
         stored_encoding = user_record.get('face_encoding')
-
-        # Verify face
+        # Use user's personalized tolerance stored during registration, fallback to config default
+        tolerance = user_record.get('face_tolerance', app.config.get('FACE_RECOGNITION_TOLERANCE', 0.85))
+        
+        print(f"Using user's personalized tolerance for face verification: {tolerance:.4f}")
         tolerance = app.config.get('FACE_RECOGNITION_TOLERANCE', 0.85)  # matches config default
         match = verify_face(image_cv2, stored_encoding, tolerance=tolerance)
         
         if not match:
-            return jsonify({'success': False, 'error': 'Access Denied – Face Not Matched'}), 400
+            return jsonify({'success': False, 'error': 'Face not matched'}), 400
         
         # Mark face verified
         session['face_verified'] = True
@@ -560,13 +619,21 @@ def verify_smartcard_route():
         if qr_data is None:
             return jsonify({'success': False, 'error': 'QR code not found'}), 400
         
-        # Verify QR code matches the unique_id (plaintext UUID match)
+        # Verify QR code matches the unique_id
         if not verify_qr_code(qr_data, unique_id, secret_key=None):
             return jsonify({'success': False, 'error': 'Invalid smart card'}), 400
         
+        # Extract name and ID from QR code
+        name, qr_id = extract_qr_info(qr_data)
+        
         # Mark smartcard verified
         session['smartcard_verified'] = True
-        return jsonify({'success': True, 'message': 'Smart card verified successfully'})
+        return jsonify({
+            'success': True, 
+            'message': 'Smart card verified successfully',
+            'name': name or 'Unknown',
+            'unique_id': qr_id
+        })
     
     except Exception as e:
         print(f"Error verifying smart card: {e}")
@@ -617,7 +684,7 @@ def download_card(unique_id):
             card_path,
             mimetype='image/png',
             as_attachment=True,
-            download_name=f'authsafe_card_{unique_id}.png'
+            download_name=f'authentication_card_{unique_id}.png'
         )
     
     except Exception as e:

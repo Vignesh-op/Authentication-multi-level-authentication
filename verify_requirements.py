@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AuthSafe Requirements Verification Script
+Authentication Requirements Verification Script
 Verifies that all required packages are installed correctly
 """
 
@@ -20,7 +20,7 @@ def check_requirement(package_name, import_name=None):
 
 def main():
     print("\n" + "="*60)
-    print("AuthSafe - Requirements Verification")
+    print("Authentication - Requirements Verification")
     print("="*60 + "\n")
     
     requirements = [

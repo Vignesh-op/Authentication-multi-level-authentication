@@ -2,7 +2,7 @@ import sys
 import os
 
 print("=" * 60)
-print("  AUTHSAFE - AUTHENTICATION LOGIC TEST SUITE v2")
+print("  AUTHENTICATION - AUTHENTICATION LOGIC TEST SUITE v2")
 print("=" * 60)
 
 results = []
@@ -44,17 +44,17 @@ except Exception as e:
 print("\n[3] Email Validation...")
 try:
     cases = [
-        ("user@authsafe.in",        True),
-        ("test.name@authsafe.in",   True),
+        ("user@authentication.in",        True),
+        ("test.name@authentication.in",   True),
         ("user@gmail.com",          False),
-        ("user@authsafe.com",       False),
+        ("user@authentication.com",       False),
         ("notanemail",              False),
-        ("@authsafe.in",            False),
+        ("@authentication.in",            False),
     ]
     for email, expected in cases:
         got = validate_email(email)
         assert got == expected, f"Email '{email}': expected {expected}, got {got}"
-    print("  PASS - validate_email works (domain restricted to @authsafe.in)")
+    print("  PASS - validate_email works (domain restricted to @authentication.in)")
     results.append(("Email Validation", True, ""))
 except AssertionError as e:
     print(f"  FAIL - {e}")
@@ -89,11 +89,11 @@ except AssertionError as e:
 print("\n[5] UUID Validation...")
 try:
     cases = [
-        ("AUTHSAFE-ABC123", True),
-        ("authsafe-abc123", True),
+        ("AUTHENTICATION-ABC123", True),
+        ("authentication-abc123", True),
         ("WRONG-ABC123",    False),
-        ("AUTHSAFE-AB12",   False),
-        ("AUTHSAFE-1234567",False),
+        ("AUTHENTICATION-AB12",   False),
+        ("AUTHENTICATION-1234567",False),
         ("",                False),
     ]
     for uuid_val, expected in cases:
@@ -114,7 +114,7 @@ try:
     import string as _string_mod
     ids = [generate_unique_id() for _ in range(10)]
     for uid in ids:
-        assert uid.startswith("AUTHSAFE-"), f"Wrong prefix: {uid}"
+        assert uid.startswith("AUTHENTICATION-"), f"Wrong prefix: {uid}"
         assert len(uid) == 15, f"Wrong length {len(uid)}: {uid}"
     # Verify uniqueness across 10 samples
     assert len(set(ids)) == 10, "Duplicate IDs generated (extremely unlikely with CSPRNG)"
@@ -184,11 +184,11 @@ except Exception as e:
 # -------------------------------------------------------
 print("\n[10] QR Code Verification (plain/legacy)...")
 try:
-    assert verify_qr_code("AUTHSAFE-ABC123", "AUTHSAFE-ABC123") == True
-    assert verify_qr_code("authsafe-abc123", "AUTHSAFE-ABC123") == True
-    assert verify_qr_code("AUTHSAFE-XXXXXX", "AUTHSAFE-ABC123") == False
-    assert verify_qr_code(None, "AUTHSAFE-ABC123") == False
-    assert verify_qr_code("AUTHSAFE-ABC123", None) == False
+    assert verify_qr_code("AUTHENTICATION-ABC123", "AUTHENTICATION-ABC123") == True
+    assert verify_qr_code("authentication-abc123", "AUTHENTICATION-ABC123") == True
+    assert verify_qr_code("AUTHENTICATION-XXXXXX", "AUTHENTICATION-ABC123") == False
+    assert verify_qr_code(None, "AUTHENTICATION-ABC123") == False
+    assert verify_qr_code("AUTHENTICATION-ABC123", None) == False
     print("  PASS - plain verify_qr_code works correctly")
     results.append(("QR Code Verification (plain)", True, ""))
 except AssertionError as e:
@@ -205,7 +205,7 @@ try:
     import tempfile
 
     SECRET = "test-secret-key"
-    UID    = "AUTHSAFE-ABC123"
+    UID    = "AUTHENTICATION-ABC123"
 
     # Generate signed payload manually
     sig = _sign_qr_payload(UID, SECRET)
@@ -220,7 +220,7 @@ try:
         "Invalid HMAC signature accepted"
 
     # Should fail if UUID doesn't match
-    assert verify_qr_code(signed_payload, "AUTHSAFE-XXXXXX", secret_key=SECRET) == False, \
+    assert verify_qr_code(signed_payload, "AUTHENTICATION-XXXXXX", secret_key=SECRET) == False, \
         "Mismatched UUID accepted"
 
     # Unsigned QR should be REJECTED when secret_key is enforced
@@ -337,17 +337,17 @@ try:
             _attempts.pop(ident, None)
 
     # Not locked initially
-    assert _locked("user@authsafe.in") == False
+    assert _locked("user@authentication.in") == False
 
     # Record 3 attempts → locked
-    _record("user@authsafe.in")
-    _record("user@authsafe.in")
-    _record("user@authsafe.in")
-    assert _locked("user@authsafe.in") == True, "Should be locked after 3 attempts"
+    _record("user@authentication.in")
+    _record("user@authentication.in")
+    _record("user@authentication.in")
+    assert _locked("user@authentication.in") == True, "Should be locked after 3 attempts"
 
     # Clear → unlocked
-    _clear("user@authsafe.in")
-    assert _locked("user@authsafe.in") == False, "Should be unlocked after clear"
+    _clear("user@authentication.in")
+    assert _locked("user@authentication.in") == False, "Should be unlocked after clear"
 
     print(f"  PASS - rate limiter: locked after {MAX_A} attempts, cleared on success")
     results.append(("Rate Limiter Logic", True, ""))

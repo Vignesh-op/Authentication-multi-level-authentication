@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# ===== AuthSafe Quick Start Script =====
-# This script automates the setup and running of AuthSafe
+# ===== Authentication Quick Start Script =====
+# This script automates the setup and running of Authentication
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
-echo "║       AuthSafe - Multi-Factor Authentication       ║"
+echo "║       Authentication - Multi-Factor Authentication       ║"
 echo "║              Quick Start Script                    ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo ""
@@ -98,7 +98,7 @@ fi
 # Start Flask application
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
-echo "║          Starting AuthSafe Application            ║"
+echo "║          Starting Authentication Application            ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo ""
 echo "🚀 Starting Flask server..."

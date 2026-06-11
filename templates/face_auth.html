@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (successAlert) {
                         successAlert.style.display = 'block';
                     }
+                    ToastNotification.show('Access Granted');
                     if (stream) {
                         stream.getTracks().forEach(track => track.stop());
                     }

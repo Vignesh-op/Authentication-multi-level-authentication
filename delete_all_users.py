@@ -1,6 +1,6 @@
 """
 Database management script to delete all users from MongoDB.
-Run this script to clear all registered users from the authsafe database.
+Run this script to clear all registered users from the authentication database.
 
 Usage:
     python delete_all_users.py
@@ -53,17 +53,17 @@ def delete_all_users():
             return False
 
 def verify_email_domain():
-    """Verify that email validation now enforces @authsafe.in domain"""
+    """Verify that email validation now enforces @authentication.in domain"""
     from utils.auth_utils import validate_email
     
     print("\n=== Email Validation Test ===")
     test_emails = [
-        ("user@authsafe.in", True),
-        ("test.user@authsafe.in", True),
-        ("admin123@authsafe.in", True),
+        ("user@authentication.in", True),
+        ("test.user@authentication.in", True),
+        ("admin123@authentication.in", True),
         ("user@gmail.com", False),
         ("user@example.com", False),
-        ("user@authsafe.com", False),
+        ("user@authentication.com", False),
         ("random.email@domain.co.uk", False),
     ]
     
@@ -78,7 +78,7 @@ def verify_email_domain():
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("AuthSafe Database Cleanup Tool")
+    print("Authentication Database Cleanup Tool")
     print("=" * 50)
     print("\n⚠ WARNING: This will delete ALL registered users from the database!")
     print("This action cannot be undone.\n")
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         if success and email_validation_ok:
             print("✓ All tasks completed successfully!")
             print("  - All users have been deleted from the database")
-            print("  - Email validation now enforces @authsafe.in domain")
+            print("  - Email validation now enforces @authentication.in domain")
         else:
             print("✗ Some tasks may not have completed successfully.")
             sys.exit(1)

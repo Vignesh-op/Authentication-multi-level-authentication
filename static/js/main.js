@@ -1,7 +1,45 @@
 // ===== Main JavaScript ===== 
 
+// Toast Notification System
+const ToastNotification = {
+    show: function(message, duration = 5000) {
+        // Create toast container if it doesn't exist
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Trigger animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // Remove after duration
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, duration);
+    }
+};
+
 // Utility Functions
-const AuthSafe = {
+const Authentication = {
     showAlert: function(message, type = 'info') {
         console.log(`[${type.toUpperCase()}] ${message}`);
     },
@@ -36,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailInputs = document.querySelectorAll('input[type="email"]');
     emailInputs.forEach(input => {
         input.addEventListener('blur', function() {
-            if (this.value && !AuthSafe.validateEmail(this.value)) {
+            if (this.value && !Authentication.validateEmail(this.value)) {
                 this.classList.add('is-invalid');
                 this.classList.remove('is-valid');
             } else if (this.value) {
@@ -59,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         input.addEventListener('blur', function() {
-            if (this.value && !AuthSafe.validatePIN(this.value)) {
+            if (this.value && !Authentication.validatePIN(this.value)) {
                 this.classList.add('is-invalid');
                 this.classList.remove('is-valid');
             } else if (this.value) {
@@ -134,4 +172,4 @@ function preventDoubleSubmit(formId) {
 }
 
 // Log page load
-console.log('AuthSafe application loaded successfully');
+console.log('Authentication application loaded successfully');

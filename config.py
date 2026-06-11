@@ -3,10 +3,10 @@ from datetime import timedelta
 
 class Config:
     """Base configuration"""
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'authsafe-secret-key-2026'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'authentication-secret-key-2026'
     
     # MongoDB Configuration
-    MONGO_URI = os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/authsafe'
+    MONGO_URI = os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/authentication'
     
     # Session Configuration
     PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
@@ -20,9 +20,12 @@ class Config:
     CARDS_FOLDER = os.path.join(os.path.dirname(__file__), 'static/cards')
     
     # Face Recognition Configuration
-    # Cosine distance between normalized vectors is in roughly the 0..2 range (lower = stricter).
-    FACE_RECOGNITION_TOLERANCE = 0.85
-    FACE_RECOGNITION_MODEL = 'hog'  # 'hog' is faster, 'cnn' is more accurate
+    # OpenCV-based feature matching using ORB keypoints and histogram analysis
+    # Euclidean distance between normalized feature vectors (0 = identical, ~2 = completely different)
+    # Recommended range: 0.25-0.45 (lower = stricter)
+    # 0.35 = balanced: rejects different people, accepts same person with pose/lighting variation
+    FACE_RECOGNITION_TOLERANCE = 0.35
+    FACE_RECOGNITION_MODEL = 'opencv'  # OpenCV-based feature matching
     
     # QR Code Configuration
     QR_CODE_SIZE = 10
@@ -46,7 +49,7 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     """Testing configuration"""
     TESTING = True
-    MONGO_URI = 'mongodb://localhost:27017/authsafe_test'
+    MONGO_URI = 'mongodb://localhost:27017/authentication_test'
 
 # Configuration dictionary
 config = {

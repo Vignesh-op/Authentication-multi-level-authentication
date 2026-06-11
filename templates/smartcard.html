@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             if (loadingSpinner) {
                 loadingSpinner.style.display = 'block';
+                ToastNotification.show('Access Granted');
             }
             this.submit();
         });

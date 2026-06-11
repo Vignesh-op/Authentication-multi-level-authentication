@@ -39,6 +39,9 @@
 
                         <!-- Webcam Section -->
                         <div id="webcamSection" class="mb-4" style="border: 2px solid rgba(0, 217, 255, 0.5); border-radius: 8px; overflow: hidden; background: #000;">
+                            <div style="background: rgba(0, 217, 255, 0.1); padding: 10px; text-align: center;">
+                                <p id="autoCaptureCountdown" class="text-center text-info small mb-0" style="letter-spacing: 1px; font-weight: bold;">Auto-capture in: <span id="countdownTimer">15</span>s</p>
+                            </div>
                             <canvas id="cameraCanvas" width="640" height="480" style="width: 100%; display: block; background: #000;"></canvas>
                             <p id="cameraStatus" class="text-center text-secondary small mt-2" style="letter-spacing: 1px;">Initializing camera...</p>
                         </div>
@@ -67,6 +70,18 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                     
+                    <!-- Display Name and ID from QR code -->
+                    <div id="cardInfoDisplay" style="display: none; margin-bottom: 20px; padding: 15px; background: rgba(0, 217, 255, 0.1); border: 2px solid rgba(0, 217, 255, 0.5); border-radius: 8px;">
+                        <p style="margin-bottom: 10px; color: #00d9ff; font-weight: bold; letter-spacing: 1px;">
+                            <i class="bi bi-person-circle"></i> Name:
+                            <span id="displayName" style="color: #fff;"></span>
+                        </p>
+                        <p style="margin: 0; color: #00d9ff; font-weight: bold; letter-spacing: 1px;">
+                            <i class="bi bi-credit-card"></i> ID:
+                            <span id="displayId" style="color: #fff;"></span>
+                        </p>
+                    </div>
+                    
                     <a href="{{ url_for('dashboard') }}" id="dashboardBtn" class="btn btn-glow w-100" style="display: none;">
                         <i class="bi bi-arrow-right-circle"></i> GO TO DASHBOARD
                     </a>
@@ -92,6 +107,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx = canvas.getContext('2d');
     let stream = null;
     let video = null;
+    let autoCaptureTimer = null;
+    let autoCaptureDuration = 15000; // 15 seconds
+    let cameraStartTime = null;
+    let countdownInterval = null;
 
     async function initCamera() {
         try {
@@ -105,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
             await video.play();
 
             cameraStatus.textContent = '✓ Camera ready - Position QR code in center and click VERIFY SMARTCARD';
+            
+            // Start auto-capture timer
+            cameraStartTime = Date.now();
+            startAutoCaptureTimer();
 
             function drawFrame() {
                 if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -119,6 +142,132 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function startAutoCaptureTimer() {
+        // Clear any existing timer
+        if (autoCaptureTimer) {
+            clearTimeout(autoCaptureTimer);
+        }
+        
+        // Clear any existing countdown interval
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        // Update countdown display
+        const countdownTimerEl = document.getElementById('countdownTimer');
+        if (countdownTimerEl) {
+            countdownTimerEl.textContent = '15';
+        }
+        
+        // Update countdown every second
+        countdownInterval = setInterval(() => {
+            if (cameraStartTime && countdownTimerEl) {
+                const elapsed = Date.now() - cameraStartTime;
+                const remaining = Math.max(0, Math.ceil((autoCaptureDuration - elapsed) / 1000));
+                countdownTimerEl.textContent = remaining;
+            }
+        }, 100);
+        
+        autoCaptureTimer = setTimeout(async function() {
+            // Clear countdown interval
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            // Auto-capture after 15 seconds
+            console.log('Auto-capture triggered - no card detected after 15 seconds');
+            
+            try {
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'block';
+                }
+                verifyCardBtn.disabled = true;
+                
+                const blob = await captureCurrentFrame();
+                const formData = new FormData();
+                formData.append('smartcard_image', blob, 'smartcard.png');
+                
+                const response = await fetch('{{ url_for("verify_smartcard_route") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await parseResponse(response);
+                
+                if (data.success) {
+                    stopCamera();
+                    if (successAlert) {
+                        successAlert.style.display = 'block';
+                        successAlert.classList.add('show');
+                    }
+                    
+                    // Display name and ID from QR code
+                    const cardInfoDisplay = document.getElementById('cardInfoDisplay');
+                    const displayName = document.getElementById('displayName');
+                    const displayId = document.getElementById('displayId');
+                    if (cardInfoDisplay && displayName && displayId) {
+                        displayName.textContent = data.name || 'Unknown';
+                        displayId.textContent = data.unique_id || 'Unknown';
+                        cardInfoDisplay.style.display = 'block';
+                    }
+                    
+                    ToastNotification.show('Access Granted');
+                    if (uploadSection) {
+                        uploadSection.style.display = 'none';
+                    }
+                    if (webcamSection) {
+                        webcamSection.style.display = 'none';
+                    }
+                    
+                    setTimeout(() => {
+                        if (dashboardBtn) {
+                            dashboardBtn.click();
+                        }
+                    }, 2000);
+                } else {
+                    // Show popup for smart card not detected
+                    showSmartCardNotDetectedPopup();
+                    // Reset timer for another attempt
+                    cameraStartTime = Date.now();
+                    startAutoCaptureTimer();
+                }
+            } catch (error) {
+                console.error('Auto-capture error:', error);
+                showSmartCardNotDetectedPopup();
+                // Reset timer for another attempt
+                cameraStartTime = Date.now();
+                startAutoCaptureTimer();
+            } finally {
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'none';
+                }
+                verifyCardBtn.disabled = false;
+            }
+        }, autoCaptureDuration);
+    }
+
+    function showSmartCardNotDetectedPopup() {
+        // Create a modern popup alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning alert-cyberpunk alert-dismissible fade show';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i> <strong>Smart Card Not Detected</strong> - Please position your smart card QR code in the center of the camera frame.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const cardAuthForm = document.getElementById('cardAuthForm');
+        if (cardAuthForm) {
+            cardAuthForm.insertAdjacentElement('beforebegin', alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                const alert = new bootstrap.Alert(alertDiv);
+                alert.close();
+            }, 5000);
+        }
+    }
+
     function captureCurrentFrame() {
         return new Promise((resolve) => {
             canvas.toBlob((blob) => resolve(blob), 'image/png');
@@ -130,6 +279,17 @@ document.addEventListener('DOMContentLoaded', function() {
             stream.getTracks().forEach(track => track.stop());
             stream = null;
             video = null;
+        }
+        
+        // Clear auto-capture timer and countdown
+        if (autoCaptureTimer) {
+            clearTimeout(autoCaptureTimer);
+            autoCaptureTimer = null;
+        }
+        
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
         }
     }
 
@@ -150,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         webcamRadio.addEventListener('change', function() {
             webcamSection.style.display = 'block';
             uploadSection.style.display = 'none';
+            cameraStartTime = Date.now();
             initCamera();
         });
     }
@@ -203,6 +364,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         successAlert.style.display = 'block';
                         successAlert.classList.add('show');
                     }
+                    
+                    // Display name and ID from QR code
+                    const cardInfoDisplay = document.getElementById('cardInfoDisplay');
+                    const displayName = document.getElementById('displayName');
+                    const displayId = document.getElementById('displayId');
+                    if (cardInfoDisplay && displayName && displayId) {
+                        displayName.textContent = data.name || 'Unknown';
+                        displayId.textContent = data.unique_id || 'Unknown';
+                        cardInfoDisplay.style.display = 'block';
+                    }
+                    
+                    ToastNotification.show('Access Granted');
                     if (uploadSection) {
                         uploadSection.style.display = 'none';
                     }
@@ -210,12 +383,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         webcamSection.style.display = 'none';
                     }
                     
-                    // Auto-redirect to dashboard silently after 1 second
+                    // Auto-redirect to dashboard silently after 2 seconds
                     setTimeout(() => {
                         if (dashboardBtn) {
                             dashboardBtn.click();
                         }
-                    }, 1000);
+                    }, 2000);
                 } else {
                     alert((data && data.error) ? data.error : 'Smartcard verification failed');
                 }

@@ -42,15 +42,15 @@ def verify_pin(pin, pin_hash):
 
 def validate_email(email):
     """
-    Validate email format - must be @authsafe.in domain.
+    Validate email format - must be @authentication.in domain.
     
     Args:
         email (str): Email to validate
         
     Returns:
-        bool: True if valid email format with @authsafe.in domain
+        bool: True if valid email format with @authentication.in domain
     """
-    pattern = r'^[a-zA-Z0-9._%+-]+@authsafe\.in$'
+    pattern = r'^[a-zA-Z0-9._%+-]+@authentication\.in$'
     return re.match(pattern, email) is not None
 
 def validate_pin(pin):
@@ -67,7 +67,7 @@ def validate_pin(pin):
 
 def validate_uuid(uuid):
     """
-    Validate UUID format (AUTHSAFE-XXXXXX).
+    Validate UUID format (AUTHENTICATION-XXXXXX).
     
     Args:
         uuid (str): UUID to validate
@@ -75,7 +75,7 @@ def validate_uuid(uuid):
     Returns:
         bool: True if valid UUID format
     """
-    pattern = r'^AUTHSAFE-[A-Z0-9]{6}$'
+    pattern = r'^AUTHENTICATION-[A-Z0-9]{6}$'
     return re.match(pattern, uuid.upper()) is not None
 
 def generate_unique_id():
@@ -86,11 +86,11 @@ def generate_unique_id():
     IDs cannot be predicted even if an attacker knows the generation time.
 
     Returns:
-        str: Unique ID in format AUTHSAFE-XXXXXX
+        str: Unique ID in format AUTHENTICATION-XXXXXX
     """
     alphabet = string.ascii_uppercase + string.digits
     random_str = ''.join(secrets.choice(alphabet) for _ in range(6))
-    return f"AUTHSAFE-{random_str}"
+    return f"AUTHENTICATION-{random_str}"
 
 def sanitize_input(text):
     """
