@@ -2,18 +2,24 @@
 """
 Database Initialization Script
 Creates MongoDB collections and indexes for the Authentication system
+Supports both local MongoDB and MongoDB Atlas (cloud)
 """
 
 import sys
+import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 def initialize_database():
     """Initialize the authentication database with collections and indexes"""
     try:
+        # Get MongoDB URI from environment or use local default
+        mongo_uri = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
+        
         # Connect to MongoDB
         print("📡 Connecting to MongoDB...")
-        client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=5000)
+        print(f"   Connection: {mongo_uri[:50]}..." if len(mongo_uri) > 50 else f"   Connection: {mongo_uri}")
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
         
         # Test connection
         client.admin.command('ping')
