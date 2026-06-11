@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: authentication-app
+    env: python
+    plan: free
+    pythonVersion: 3.11.9
+    buildCommand: pip install --no-cache-dir -r requirements.txt && python init_db.py
+    startCommand: gunicorn app:app --workers 2 --worker-class sync --timeout 60 --bind 0.0.0.0:5000
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PIP_NO_CACHE_DIR
+        value: 1
+      - key: PYTHONUNBUFFERED
+        value: 1
+    autoDeploy: true
