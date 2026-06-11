@@ -9,3 +9,5 @@ pyzbar
 pillow
 numpy
 python-dotenv
+deepface
+dlib

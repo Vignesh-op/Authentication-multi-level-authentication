@@ -20,12 +20,14 @@ class Config:
     CARDS_FOLDER = os.path.join(os.path.dirname(__file__), 'static/cards')
     
     # Face Recognition Configuration
-    # OpenCV-based feature matching using ORB keypoints and histogram analysis
-    # Euclidean distance between normalized feature vectors (0 = identical, ~2 = completely different)
-    # Recommended range: 0.25-0.45 (lower = stricter)
-    # 0.35 = balanced: rejects different people, accepts same person with pose/lighting variation
-    FACE_RECOGNITION_TOLERANCE = 0.35
-    FACE_RECOGNITION_MODEL = 'opencv'  # OpenCV-based feature matching
+    # Facial Geometry Template Matching (normalized landmark positions and measurements)
+    # Compares geometric structure - lighting invariant and pose tolerant
+    # Similarity score between 0 and 1 (1 = identical geometry)
+    # Tolerance: geometric similarity threshold (lower = stricter)
+    # Recommended range: 0.15-0.35
+    # 0.25 = balanced: rejects different people, accepts same person with head rotation/scale variation
+    FACE_RECOGNITION_TOLERANCE = 0.25
+    FACE_RECOGNITION_MODEL = 'facial_geometry'  # Geometric template matching
     
     # QR Code Configuration
     QR_CODE_SIZE = 10

@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import dlib
 import os
 from PIL import Image
 import io
@@ -9,9 +10,8 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings('ignore')
 
-# Try to import dlib for 68-point landmark detection (optional)
+# Initialize dlib face detector and landmark predictor
 try:
-    import dlib
     detector = dlib.get_frontal_face_detector()
     # Try to load predictor - if not available, we'll use OpenCV
     predictor_path = os.path.join(os.path.dirname(__file__), 'shape_predictor_68_face_landmarks.dat')
@@ -21,9 +21,9 @@ try:
     else:
         DLIB_AVAILABLE = False
         print("⚠ dlib landmark predictor model not found - using cascade-based geometry extraction")
-except ImportError as e:
+except Exception as e:
     DLIB_AVAILABLE = False
-    print(f"⚠ dlib not available - using cascade-based geometry extraction (fallback method)")
+    print(f"⚠ dlib not available ({type(e).__name__}) - using cascade-based geometry extraction")
 
 def capture_face_from_webcam():
     """
@@ -155,20 +155,6 @@ def extract_facial_geometry(image_cv2):
     except Exception as e:
         print(f"Error extracting facial geometry: {e}")
         return None
-
-def get_face_encoding(image_cv2, use_deepface=True):
-    """
-    Alias for extract_facial_geometry for backward compatibility.
-    In this geometry-based approach, 'encoding' is actually the geometric template.
-    
-    Args:
-        image_cv2: OpenCV image (BGR format)
-        use_deepface: Ignored (for API compatibility)
-        
-    Returns:
-        dict: Facial geometry template
-    """
-    return extract_facial_geometry(image_cv2)
 
 def _extract_dlib_geometry(image_cv2):
     """

@@ -41,6 +41,27 @@ mongo = PyMongo(app)
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 
+# ===== JINJA2 FILTERS =====
+@app.template_filter('to_ist')
+def convert_to_ist(utc_datetime):
+    """Convert UTC datetime to IST (UTC+5:30)"""
+    if utc_datetime is None:
+        return 'N/A'
+    # IST is UTC+5:30
+    ist_offset = timedelta(hours=5, minutes=30)
+    ist_time = utc_datetime + ist_offset
+    return ist_time.strftime('%Y-%m-%d %H:%M:%S IST')
+
+@app.template_filter('to_ist_tooltip')
+def convert_to_ist_tooltip(utc_datetime):
+    """Convert UTC datetime to IST for tooltip (full format)"""
+    if utc_datetime is None:
+        return 'N/A'
+    # IST is UTC+5:30
+    ist_offset = timedelta(hours=5, minutes=30)
+    ist_time = utc_datetime + ist_offset
+    return ist_time.strftime('%Y-%m-%d %H:%M:%S IST')
+
 # ---------------------------------------------------------------------------
 # In-memory login-attempt rate limiter (Fix #9)
 # Locks an identifier (email or UUID) for LOCKOUT_MINUTES after MAX_ATTEMPTS
@@ -150,13 +171,15 @@ def admin_dashboard():
             last_login = admin_session.get('last_login')
             login_count = admin_session.get('login_count', 0)
         
-        # Fetch all users from database
+        # Fetch all users from database with login tracking info
         users = list(mongo.db.users.find({}, {
             'name': 1,
             'email': 1,
             'unique_id': 1,
             'created_at': 1,
-            'smartcard_path': 1
+            'smartcard_path': 1,
+            'last_login': 1,
+            'login_count': 1
         }).sort('created_at', -1))
         
         return render_template('admin_dashboard.html', 
@@ -288,10 +311,26 @@ def login():
 
         _clear_attempts(identifier)
 
+        # Record user login timestamp
+        try:
+            mongo.db.users.update_one(
+                {'_id': user['_id']},
+                {
+                    '$set': {
+                        'last_login': datetime.utcnow()
+                    },
+                    '$inc': {
+                        'login_count': 1
+                    }
+                }
+            )
+        except Exception as e:
+            print(f"Error recording user login timestamp: {e}")
+
         # Store user info in session
-        # NOTE: face_encoding is NOT stored in the session — it is fetched
+        # NOTE: facial_geometry is NOT stored in the session — it is fetched
         # fresh from the DB in /verify-face to avoid bloating the session
-        # and to prevent stale/tampered encodings being used.
+        # and to prevent stale/tampered geometry templates being used.
         session['user_id']           = str(user['_id'])
         session['email']             = user['email']
         session['name']              = user['name']
@@ -372,28 +411,21 @@ def capture_face():
         return jsonify({'success': False, 'error': 'Invalid session'}), 400
     
     try:
-        # Webcam capture only
-        image_cv2, face_encoding = capture_face_from_webcam()
+        # Webcam capture and facial geometry extraction
+        image_cv2, facial_geometry = capture_face_from_webcam()
         if image_cv2 is None:
             return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Get face encoding if not already done
-        if face_encoding is None:
-            face_encoding = get_face_encoding(image_cv2)
+        # Get facial geometry if not already done
+        if facial_geometry is None:
+            facial_geometry = get_face_encoding(image_cv2)
         
-        if face_encoding is None:
+        if facial_geometry is None:
             return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Calculate user-specific tolerance based on face encoding characteristics
-        # Use a baseline of 0.85 as the personalized tolerance for this user
-        face_encoding_array = np.array(face_encoding, dtype=np.float32)
-        encoding_norm = np.linalg.norm(face_encoding_array)
-        # Personalized tolerance: baseline adjusted by encoding characteristics
-        user_tolerance = min(0.88, max(0.82, 0.85))  # Keep between 0.82-0.88
-        
-        # Save face encoding and tolerance to session
-        session['face_encoding'] = face_encoding
-        session['user_face_tolerance'] = user_tolerance
+        # Save facial geometry template to session
+        # Geometry is stored as a dict with normalized landmark positions and measurements
+        session['facial_geometry'] = facial_geometry
         
         # Save face image temporarily
         unique_id = session['registration_data']['unique_id']
@@ -401,7 +433,7 @@ def capture_face():
         cv2.imwrite(face_image_path, image_cv2)
         session['face_image_path'] = face_image_path
         
-        print(f"Face captured with personalized tolerance: {user_tolerance:.4f}")
+        print(f"Face captured with tolerance: {app.config['FACE_RECOGNITION_TOLERANCE']:.4f}")
         return jsonify({'success': True, 'message': 'Face captured successfully'})
     
     except Exception as e:
@@ -456,8 +488,7 @@ def smartcard():
                 'email': registration_data['email'],
                 'pin_hash': registration_data['pin_hash'],
                 'unique_id': unique_id,
-                'face_encoding': session.get('face_encoding'),
-                'face_tolerance': session.get('user_face_tolerance', 0.85),  # Store user's personalized tolerance
+                'facial_geometry': session.get('facial_geometry'),  # Store geometric template (lighting/pose invariant)
                 'smartcard_path': card_path,
                 'created_at': get_timestamp()
             }
@@ -469,9 +500,8 @@ def smartcard():
             
             # Clean up session
             session.pop('registration_data', None)
-            session.pop('face_encoding', None)
+            session.pop('facial_geometry', None)
             session.pop('face_image_path', None)
-            session.pop('user_face_tolerance', None)
             
             return render_template('smartcard.html',
                                   name=registration_data['name'],
@@ -546,24 +576,24 @@ def verify_face_route():
             if image_cv2 is None:
                 return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Check if face can be detected and encoded
-        captured_encoding = get_face_encoding(image_cv2)
-        if captured_encoding is None:
+        # Extract facial geometry from captured image
+        captured_geometry = get_face_encoding(image_cv2)
+        if captured_geometry is None:
             return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Get stored encoding and user's personalized tolerance from DB (not from session — Fix #2)
+        # Get stored facial geometry template from database
         user_record = mongo.db.users.find_one(
-            {'email': session['email']}, {'face_encoding': 1, 'face_tolerance': 1}
+            {'email': session['email']}, {'facial_geometry': 1}
         )
         if not user_record:
             return jsonify({'success': False, 'error': 'User not found'}), 400
-        stored_encoding = user_record.get('face_encoding')
-        # Use user's personalized tolerance stored during registration, fallback to config default
-        tolerance = user_record.get('face_tolerance', app.config.get('FACE_RECOGNITION_TOLERANCE', 0.85))
+        stored_geometry = user_record.get('facial_geometry')
         
-        print(f"Using user's personalized tolerance for face verification: {tolerance:.4f}")
-        tolerance = app.config.get('FACE_RECOGNITION_TOLERANCE', 0.85)  # matches config default
-        match = verify_face(image_cv2, stored_encoding, tolerance=tolerance)
+        # Use geometric similarity matching with default tolerance
+        # Tolerance: 0.15-0.35 (lower = stricter). Default 0.25 provides good balance
+        tolerance = app.config.get('FACE_RECOGNITION_TOLERANCE', 0.25)
+        print(f"Matching facial geometry with tolerance: {tolerance:.4f}")
+        match = verify_face(image_cv2, stored_geometry, tolerance=tolerance)
         
         if not match:
             return jsonify({'success': False, 'error': 'Face not matched'}), 400
@@ -656,7 +686,9 @@ def dashboard():
                               name=user['name'],
                               unique_id=user['unique_id'],
                               email=user['email'],
-                              created_at=user.get('created_at'))
+                              created_at=user.get('created_at'),
+                              last_login=user.get('last_login'),
+                              login_count=user.get('login_count', 0))
     
     except Exception as e:
         print(f"Error loading dashboard: {e}")

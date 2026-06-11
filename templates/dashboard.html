@@ -36,6 +36,25 @@
             </div>
         </div>
         <div class="col-md-6">
+            <div class="card shadow-sm bg-dark text-light border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-neon-primary"><i class="bi bi-clock-history"></i> Login Activity</h5>
+                    <p><strong>Last Login:</strong> 
+                        {% if last_login %}
+                            {{ last_login | to_ist }}
+                        {% else %}
+                            This is your first login
+                        {% endif %}
+                    </p>
+                    <p><strong>Total Logins:</strong> <span class="badge bg-info">{{ login_count }}</span></p>
+                    <p><i class="bi bi-shield-check text-success"></i> <span class="text-success">Account Status: Active</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-12">
             <div class="card shadow-sm bg-dark text-light border-info">
                 <div class="card-body">
                     <h5 class="card-title text-neon-primary">Security Status</h5>

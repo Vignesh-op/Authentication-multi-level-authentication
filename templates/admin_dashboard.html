@@ -76,7 +76,7 @@
                                 <p class="text-light mb-1">
                                     <strong>Last Login:</strong>
                                     <span class="text-success" style="font-family: 'Courier New', monospace;">
-                                        {{ last_login.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+                                        {{ last_login | to_ist }}
                                     </span>
                                 </p>
                                 <p class="text-muted small mb-0">
@@ -136,6 +136,12 @@
                                 <th style="color: #00d9ff; letter-spacing: 1px;">
                                     <i class="bi bi-calendar-event"></i> REGISTERED
                                 </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px;">
+                                    <i class="bi bi-clock-history"></i> LAST LOGIN
+                                </th>
+                                <th style="color: #00d9ff; letter-spacing: 1px; text-align: center;">
+                                    <i class="bi bi-graph-up"></i> LOGINS
+                                </th>
                                 <th style="color: #00d9ff; letter-spacing: 1px; text-align: center;">
                                     <i class="bi bi-download"></i> ACTION
                                 </th>
@@ -154,6 +160,24 @@
                                 </td>
                                 <td style="color: #999; font-size: 0.9rem;">
                                     {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}
+                                </td>
+                                <td style="color: #666; font-size: 0.9rem;">
+                                    {% if user.last_login %}
+                                        <span style="color: #00ff88;" title="{{ user.last_login | to_ist_tooltip }}">
+                                            {{ user.last_login | to_ist }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if user.login_count and user.login_count > 0 %}
+                                        <span class="badge bg-info" title="Total successful logins">
+                                            {{ user.login_count }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #666;">0</span>
+                                    {% endif %}
                                 </td>
                                 <td style="text-align: center;">
                                     {% if user.smartcard_path and user.smartcard_path %}
