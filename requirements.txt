@@ -11,3 +11,5 @@ numpy
 python-dotenv
 deepface
 dlib
+gunicorn
+
