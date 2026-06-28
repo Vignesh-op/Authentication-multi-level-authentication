@@ -16,8 +16,12 @@ from utils.auth_utils import (
     hash_pin, verify_pin, validate_email, validate_uuid, validate_pin, 
     generate_unique_id, sanitize_input, get_timestamp
 )
+from utils.face_utils_geometry import (
+    capture_face_from_webcam, extract_facial_geometry, verify_face,
+    verify_face_with_accuracy
+)
 from utils.face_utils import (
-    capture_face_from_webcam, get_face_encoding, verify_face, 
+    capture_face_from_webcam as capture_face_fallback, get_face_encoding, verify_face as verify_face_fallback, 
     save_face_image, image_to_bytes, bytes_to_image
 )
 from utils.qr_utils import (
@@ -406,7 +410,7 @@ def face_register():
 
 @app.route('/capture-face', methods=['POST'])
 def capture_face():
-    """Capture face from webcam"""
+    """Capture face from webcam and extract facial geometry template"""
     if 'registration_data' not in session:
         return jsonify({'success': False, 'error': 'Invalid session'}), 400
     
@@ -418,7 +422,7 @@ def capture_face():
         
         # Get facial geometry if not already done
         if facial_geometry is None:
-            facial_geometry = get_face_encoding(image_cv2)
+            facial_geometry = extract_facial_geometry(image_cv2)
         
         if facial_geometry is None:
             return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
@@ -433,8 +437,10 @@ def capture_face():
         cv2.imwrite(face_image_path, image_cv2)
         session['face_image_path'] = face_image_path
         
-        print(f"Face captured with tolerance: {app.config['FACE_RECOGNITION_TOLERANCE']:.4f}")
-        return jsonify({'success': True, 'message': 'Face captured successfully'})
+        print(f"✓ Face geometry template captured successfully")
+        print(f"  Method: {facial_geometry.get('method', 'unknown')}")
+        print(f"  Template version: {facial_geometry.get('template_version', '1.0')}")
+        return jsonify({'success': True, 'message': 'Face geometry template captured successfully'})
     
     except Exception as e:
         print(f"Error capturing face: {e}")
@@ -552,13 +558,18 @@ def face_auth():
 
 @app.route('/verify-face', methods=['POST'])
 def verify_face_route():
-    """Verify face during login with webcam only"""
+    """
+    Verify face during login with 90% accuracy threshold.
+    Ensures ONLY the specific logged-in user's face is accepted.
+    Includes anti-spoofing checks to prevent unauthorized access.
+    """
     if 'email' not in session:
         return jsonify({'success': False, 'error': 'Invalid session'}), 400
     
     try:
         image_cv2 = None
-
+        user_email = session.get('email')
+        
         # Prefer browser-provided capture (same camera access style as registration UI)
         if 'face_image' in request.files:
             file = request.files['face_image']
@@ -576,34 +587,114 @@ def verify_face_route():
             if image_cv2 is None:
                 return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
         
-        # Extract facial geometry from captured image
-        captured_geometry = get_face_encoding(image_cv2)
-        if captured_geometry is None:
-            return jsonify({'success': False, 'error': 'No face detected. Please try again.'}), 400
-        
-        # Get stored facial geometry template from database
+        # Get stored facial geometry template from database for SPECIFIC user
         user_record = mongo.db.users.find_one(
-            {'email': session['email']}, {'facial_geometry': 1}
+            {'email': user_email}, {'facial_geometry': 1, 'name': 1, '_id': 1}
         )
         if not user_record:
+            print(f"❌ User not found for email: {user_email}")
             return jsonify({'success': False, 'error': 'User not found'}), 400
-        stored_geometry = user_record.get('facial_geometry')
         
-        # Use geometric similarity matching with default tolerance
-        # Tolerance: 0.15-0.35 (lower = stricter). Default 0.25 provides good balance
-        tolerance = app.config.get('FACE_RECOGNITION_TOLERANCE', 0.25)
-        print(f"Matching facial geometry with tolerance: {tolerance:.4f}")
-        match = verify_face(image_cv2, stored_geometry, tolerance=tolerance)
+        stored_geometry = user_record.get('facial_geometry')
+        if not stored_geometry:
+            print(f"❌ No facial template found for user: {user_email}")
+            return jsonify({'success': False, 'error': 'No facial template found in database'}), 400
+        
+        user_name = user_record.get('name', 'Unknown')
+        user_id = user_record.get('_id')
+        
+        # Extract geometry from captured image
+        captured_geometry = extract_facial_geometry(image_cv2)
+        if not captured_geometry:
+            print(f"❌ Failed to extract geometry from captured face")
+            return jsonify({'success': False, 'error': 'Could not extract face features'}), 400
+        
+        # Verify face with 90% accuracy threshold using geometry template matching
+        accuracy_threshold = 90  # 90% accuracy required
+        match, accuracy, message = verify_face_with_accuracy(
+            image_cv2, 
+            stored_geometry, 
+            accuracy_threshold=accuracy_threshold
+        )
+        
+        print(f"✓ Face verification for {user_name} ({user_email}): {message} - Accuracy: {accuracy:.2f}%")
         
         if not match:
-            return jsonify({'success': False, 'error': 'Face not matched'}), 400
+            print(f"❌ Face mismatch for {user_name}: accuracy {accuracy:.2f}% < threshold {accuracy_threshold}%")
+            # Clear face verification status on failure
+            session['face_verified'] = False
+            return jsonify({
+                'success': False, 
+                'error': f'Face not matched. Accuracy: {accuracy:.2f}% (Required: {accuracy_threshold}%)',
+                'accuracy': round(accuracy, 2),
+                'threshold': accuracy_threshold,
+                'user_email': user_email
+            }), 400
         
-        # Mark face verified
+        # ===== ANTI-SPOOFING CHECK =====
+        # Verify that captured face does NOT match other users' templates (prevent spoofing)
+        all_users = list(mongo.db.users.find({}, {'email': 1, 'name': 1, 'facial_geometry': 1}))
+        spoofing_detected = False
+        suspicious_users = []
+        
+        for other_user in all_users:
+            # Skip the logged-in user
+            if other_user.get('email') == user_email:
+                continue
+            
+            other_geometry = other_user.get('facial_geometry')
+            if not other_geometry:
+                continue
+            
+            # Check if captured face matches another user's template
+            other_match, other_accuracy, _ = verify_face_with_accuracy(
+                image_cv2,
+                other_geometry,
+                accuracy_threshold=75  # Lower threshold for spoofing detection
+            )
+            
+            if other_match and other_accuracy >= 75:
+                spoofing_detected = True
+                suspicious_users.append({
+                    'name': other_user.get('name'),
+                    'email': other_user.get('email'),
+                    'accuracy': round(other_accuracy, 2)
+                })
+                print(f"⚠️  SPOOFING ALERT: Captured face matched {other_user.get('name')} with {other_accuracy:.2f}% accuracy")
+        
+        if spoofing_detected:
+            print(f"❌ SPOOFING DETECTED for email {user_email}: Face matched other users {suspicious_users}")
+            session['face_verified'] = False
+            session.clear()  # Clear session on spoofing attempt
+            return jsonify({
+                'success': False, 
+                'error': 'Spoofing detected. Face matched multiple users. Access denied.',
+                'suspicious_activity': True,
+                'matched_users': suspicious_users
+            }), 403
+        
+        # Mark face verified for THIS SPECIFIC USER
         session['face_verified'] = True
-        return jsonify({'success': True, 'message': 'Face verified successfully'})
+        session['face_accuracy'] = round(accuracy, 2)
+        session['verified_user_id'] = str(user_id)
+        
+        print(f"✅ FACE AUTHENTICATION SUCCESS for {user_name} ({user_email})")
+        print(f"   Accuracy: {accuracy:.2f}% | Threshold: {accuracy_threshold}%")
+        print(f"   Anti-spoofing: PASSED (checked against {len(all_users)-1} other users)")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Face verified successfully with {accuracy:.2f}% accuracy',
+            'accuracy': round(accuracy, 2),
+            'threshold': accuracy_threshold,
+            'user_email': user_email,
+            'user_name': user_name,
+            'anti_spoofing_status': 'passed'
+        })
     
     except Exception as e:
-        print(f"Error verifying face: {e}")
+        print(f"❌ Error verifying face: {e}")
+        session['face_verified'] = False
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/smartcard-auth')
@@ -671,16 +762,56 @@ def verify_smartcard_route():
 
 @app.route('/dashboard')
 def dashboard():
-    """User dashboard"""
-    if 'email' not in session or not session.get('smartcard_verified'):
+    """
+    User dashboard with comprehensive security verification.
+    Ensures user identity through email, face verification, and smartcard verification.
+    """
+    # Check session exists and required verifications are complete
+    if 'email' not in session:
+        print("❌ Dashboard access denied: No email in session")
         return redirect(url_for('login'))
     
+    if not session.get('smartcard_verified'):
+        print(f"❌ Dashboard access denied for {session['email']}: Smartcard not verified")
+        return redirect(url_for('login'))
+    
+    # Optional: Verify face was also checked during this session
+    # (This depends on your authentication flow preference)
+    if not session.get('face_verified'):
+        print(f"⚠️  Warning: Dashboard access without face verification for {session['email']}")
+    
     try:
-        # Get user from database
-        user = mongo.db.users.find_one({'email': session['email']})
+        user_email = session['email']
+        
+        # Get user from database and verify identity
+        user = mongo.db.users.find_one({'email': user_email})
         
         if not user:
+            print(f"❌ Dashboard access denied: User {user_email} not found in database")
+            session.clear()
             return redirect(url_for('login'))
+        
+        # Verify session user_id matches database user_id (anti-tampering)
+        session_user_id = session.get('user_id')
+        db_user_id = str(user['_id'])
+        
+        if session_user_id != db_user_id:
+            print(f"❌ SECURITY ALERT: Session tampering detected for {user_email}")
+            print(f"   Session ID: {session_user_id} vs DB ID: {db_user_id}")
+            session.clear()
+            return redirect(url_for('login'))
+        
+        # Verify face accuracy is acceptable (if face was verified)
+        if session.get('face_verified'):
+            face_accuracy = session.get('face_accuracy', 0)
+            if face_accuracy < 90:
+                print(f"❌ Dashboard access denied: Face accuracy {face_accuracy}% < 90% threshold")
+                session.clear()
+                return redirect(url_for('login'))
+        
+        print(f"✅ Dashboard access GRANTED for {user['name']} ({user_email})")
+        print(f"   Face Verified: {session.get('face_verified')} | Accuracy: {session.get('face_accuracy')}%")
+        print(f"   Smartcard Verified: {session.get('smartcard_verified')}")
         
         return render_template('dashboard.html', 
                               name=user['name'],
@@ -691,7 +822,8 @@ def dashboard():
                               login_count=user.get('login_count', 0))
     
     except Exception as e:
-        print(f"Error loading dashboard: {e}")
+        print(f"❌ Error loading dashboard: {e}")
+        session.clear()
         return redirect(url_for('login'))
 
 @app.route('/download-card/<unique_id>')

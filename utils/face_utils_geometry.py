@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import dlib
 import os
 from PIL import Image
 import io
@@ -10,8 +9,9 @@ import warnings
 # Suppress warnings
 warnings.filterwarnings('ignore')
 
-# Initialize dlib face detector and landmark predictor
+# Try to import dlib for 68-point landmark detection (optional)
 try:
+    import dlib
     detector = dlib.get_frontal_face_detector()
     # Try to load predictor - if not available, we'll use OpenCV
     predictor_path = os.path.join(os.path.dirname(__file__), 'shape_predictor_68_face_landmarks.dat')
@@ -315,6 +315,58 @@ def verify_face(captured_image, stored_geometry, tolerance=0.25):
     except Exception as e:
         print(f"Error verifying face: {e}")
         return False
+
+def verify_face_with_accuracy(captured_image, stored_geometry, accuracy_threshold=90):
+    """
+    Verify if captured face matches stored facial geometry template with accuracy percentage.
+    
+    Compares geometric features and returns both match status and accuracy percentage.
+    
+    Args:
+        captured_image: OpenCV image to verify
+        stored_geometry: Stored facial geometry template (dict)
+        accuracy_threshold: Required accuracy percentage (0-100, default 90)
+        
+    Returns:
+        tuple: (match_bool, accuracy_percentage, message)
+               - match_bool: True if accuracy >= threshold
+               - accuracy_percentage: Float 0-100
+               - message: String describing the result
+    """
+    try:
+        if stored_geometry is None:
+            print("Error: No stored facial geometry available")
+            return False, 0.0, "No stored facial geometry available"
+        
+        # Extract geometry from captured image
+        captured_geometry = extract_facial_geometry(captured_image)
+        
+        if captured_geometry is None:
+            print("No face detected in captured image for verification")
+            return False, 0.0, "No face detected in captured image"
+        
+        # Calculate similarity score (0-1)
+        similarity = _calculate_geometry_similarity(stored_geometry, captured_geometry)
+        
+        # Convert similarity to accuracy percentage
+        accuracy = similarity * 100.0
+        
+        # Check if accuracy meets threshold
+        match = accuracy >= accuracy_threshold
+        
+        message = (
+            f"Face verification - Accuracy: {accuracy:.2f}%, "
+            f"Threshold: {accuracy_threshold}%, Match: {match}"
+        )
+        
+        print(message)
+        
+        return match, accuracy, message
+        
+    except Exception as e:
+        error_msg = f"Error verifying face: {e}"
+        print(error_msg)
+        return False, 0.0, error_msg
 
 def _calculate_geometry_similarity(geometry1, geometry2):
     """

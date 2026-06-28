@@ -23,10 +23,12 @@ class Config:
     # Facial Geometry Template Matching (normalized landmark positions and measurements)
     # Compares geometric structure - lighting invariant and pose tolerant
     # Similarity score between 0 and 1 (1 = identical geometry)
-    # Tolerance: geometric similarity threshold (lower = stricter)
-    # Recommended range: 0.15-0.35
-    # 0.25 = balanced: rejects different people, accepts same person with head rotation/scale variation
-    FACE_RECOGNITION_TOLERANCE = 0.25
+    # Accuracy threshold for authentication: 90% (0-100)
+    # - 90% = balanced: rejects different people, accepts same person with head rotation/scale variation
+    # - Higher (95%+) = stricter, fewer false positives but more false negatives
+    # - Lower (80%+) = more lenient, fewer false negatives but more false positives
+    FACE_RECOGNITION_ACCURACY_THRESHOLD = 90  # Required accuracy percentage for authentication
+    FACE_RECOGNITION_TOLERANCE = 0.25  # Legacy tolerance (0.15-0.35, lower = stricter)
     FACE_RECOGNITION_MODEL = 'facial_geometry'  # Geometric template matching
     
     # QR Code Configuration
