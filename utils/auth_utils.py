@@ -2,7 +2,7 @@ import bcrypt
 import re
 import secrets
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def hash_pin(pin):
     """
@@ -122,3 +122,13 @@ def get_timestamp():
         datetime: Current datetime
     """
     return datetime.utcnow()
+
+
+def get_ist_timestamp():
+    """
+    Get current timestamp in Indian Standard Time (UTC+5:30).
+
+    Returns:
+        datetime: Current datetime in IST
+    """
+    return datetime.utcnow() + timedelta(hours=5, minutes=30)

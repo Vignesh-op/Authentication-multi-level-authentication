@@ -14,11 +14,11 @@ import threading
 # Import utilities
 from utils.auth_utils import (
     hash_pin, verify_pin, validate_email, validate_uuid, validate_pin, 
-    generate_unique_id, sanitize_input, get_timestamp
+    generate_unique_id, sanitize_input, get_timestamp, get_ist_timestamp
 )
 from utils.face_utils_geometry import (
     capture_face_from_webcam, extract_facial_geometry, verify_face,
-    verify_face_with_accuracy
+    verify_face_with_accuracy, verify_geometry_with_accuracy
 )
 from utils.face_utils import (
     capture_face_from_webcam as capture_face_fallback, get_face_encoding, verify_face as verify_face_fallback, 
@@ -496,7 +496,7 @@ def smartcard():
                 'unique_id': unique_id,
                 'facial_geometry': session.get('facial_geometry'),  # Store geometric template (lighting/pose invariant)
                 'smartcard_path': card_path,
-                'created_at': get_timestamp()
+                'created_at': get_ist_timestamp()
             }
             
             result = mongo.db.users.insert_one(user_data)
@@ -611,9 +611,9 @@ def verify_face_route():
         
         # Verify face with 90% accuracy threshold using geometry template matching
         accuracy_threshold = 90  # 90% accuracy required
-        match, accuracy, message = verify_face_with_accuracy(
-            image_cv2, 
-            stored_geometry, 
+        match, accuracy, message = verify_geometry_with_accuracy(
+            captured_geometry,
+            stored_geometry,
             accuracy_threshold=accuracy_threshold
         )
         
@@ -632,46 +632,60 @@ def verify_face_route():
             }), 400
         
         # ===== ANTI-SPOOFING CHECK =====
-        # Verify that captured face does NOT match other users' templates (prevent spoofing)
+        # Verify captured face does NOT closely match other users' templates.
+        # Use a higher threshold for suspicious matches and also consider
+        # matches that are very close to the logged-in user's accuracy (margin).
+        SPOOF_THRESHOLD = 80  # >=80% considered suspicious
+        SPOOF_MARGIN = 10     # within 10% of the user's accuracy is suspicious
+
         all_users = list(mongo.db.users.find({}, {'email': 1, 'name': 1, 'facial_geometry': 1}))
         spoofing_detected = False
         suspicious_users = []
-        
+        top_candidates = []
+
         for other_user in all_users:
             # Skip the logged-in user
             if other_user.get('email') == user_email:
                 continue
-            
+
             other_geometry = other_user.get('facial_geometry')
             if not other_geometry:
                 continue
-            
-            # Check if captured face matches another user's template
-            other_match, other_accuracy, _ = verify_face_with_accuracy(
-                image_cv2,
+
+            # Get accuracy for other users (don't rely solely on the boolean match)
+            _, other_accuracy, _ = verify_geometry_with_accuracy(
+                captured_geometry,
                 other_geometry,
-                accuracy_threshold=75  # Lower threshold for spoofing detection
+                accuracy_threshold=75  # baseline for computing accuracy
             )
-            
-            if other_match and other_accuracy >= 75:
+
+            # Record for top-K debug analysis
+            top_candidates.append({
+                'name': other_user.get('name'),
+                'email': other_user.get('email'),
+                'accuracy': round(other_accuracy, 2)
+            })
+
+            # Flag spoofing if another user's accuracy is high, or very close
+            # to the logged-in user's accuracy (ambiguous match)
+            if other_accuracy >= SPOOF_THRESHOLD or other_accuracy >= (accuracy - SPOOF_MARGIN):
                 spoofing_detected = True
                 suspicious_users.append({
                     'name': other_user.get('name'),
                     'email': other_user.get('email'),
                     'accuracy': round(other_accuracy, 2)
                 })
-                print(f"⚠️  SPOOFING ALERT: Captured face matched {other_user.get('name')} with {other_accuracy:.2f}% accuracy")
-        
+                print(f"⚠️  SPOOFING ALERT: Captured face matched {other_user.get('name')} with {other_accuracy:.2f}% accuracy (user accuracy {accuracy:.2f}%)")
+
         if spoofing_detected:
-            print(f"❌ SPOOFING DETECTED for email {user_email}: Face matched other users {suspicious_users}")
-            session['face_verified'] = False
-            session.clear()  # Clear session on spoofing attempt
-            return jsonify({
-                'success': False, 
-                'error': 'Spoofing detected. Face matched multiple users. Access denied.',
-                'suspicious_activity': True,
-                'matched_users': suspicious_users
-            }), 403
+            print(f"❌ SPOOFING WARNING for email {user_email}: Face matched other users {suspicious_users}")
+            # Also log top candidates for debugging
+            top_matches = sorted(top_candidates, key=lambda x: x['accuracy'], reverse=True)[:5]
+            print(f"Top candidate matches: {top_matches}")
+            # Do NOT deny access. Mark suspicious and continue — return warning in response.
+            suspicious_flag = True
+        else:
+            suspicious_flag = False
         
         # Mark face verified for THIS SPECIFIC USER
         session['face_verified'] = True
@@ -682,15 +696,26 @@ def verify_face_route():
         print(f"   Accuracy: {accuracy:.2f}% | Threshold: {accuracy_threshold}%")
         print(f"   Anti-spoofing: PASSED (checked against {len(all_users)-1} other users)")
         
-        return jsonify({
-            'success': True, 
+        response = {
+            'success': True,
             'message': f'Face verified successfully with {accuracy:.2f}% accuracy',
             'accuracy': round(accuracy, 2),
             'threshold': accuracy_threshold,
             'user_email': user_email,
             'user_name': user_name,
-            'anti_spoofing_status': 'passed'
-        })
+        }
+
+        if suspicious_flag:
+            response.update({
+                'suspicious_activity': True,
+                'matched_users': suspicious_users,
+                'top_matches': top_matches,
+                'anti_spoofing_status': 'warning'
+            })
+        else:
+            response['anti_spoofing_status'] = 'passed'
+
+        return jsonify(response)
     
     except Exception as e:
         print(f"❌ Error verifying face: {e}")

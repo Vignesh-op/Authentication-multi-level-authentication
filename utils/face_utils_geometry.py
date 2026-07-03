@@ -347,20 +347,20 @@ def verify_face_with_accuracy(captured_image, stored_geometry, accuracy_threshol
         
         # Calculate similarity score (0-1)
         similarity = _calculate_geometry_similarity(stored_geometry, captured_geometry)
-        
+
         # Convert similarity to accuracy percentage
         accuracy = similarity * 100.0
-        
+
         # Check if accuracy meets threshold
         match = accuracy >= accuracy_threshold
-        
+
         message = (
             f"Face verification - Accuracy: {accuracy:.2f}%, "
             f"Threshold: {accuracy_threshold}%, Match: {match}"
         )
-        
+
         print(message)
-        
+
         return match, accuracy, message
         
     except Exception as e:
@@ -441,6 +441,40 @@ def _calculate_geometry_similarity(geometry1, geometry2):
     except Exception as e:
         print(f"Error calculating similarity: {e}")
         return 0.0
+
+
+def verify_geometry_with_accuracy(captured_geometry, stored_geometry, accuracy_threshold=90):
+    """
+    Verify captured facial geometry against a stored geometry template.
+
+    This avoids re-extracting geometry multiple times (reduces variance)
+    when comparing the same captured face against multiple stored templates.
+
+    Args:
+        captured_geometry: Geometry dict extracted from captured image
+        stored_geometry: Stored facial geometry template (dict)
+        accuracy_threshold: Required accuracy percentage (0-100)
+
+    Returns:
+        tuple: (match_bool, accuracy_percentage, message)
+    """
+    try:
+        if captured_geometry is None or stored_geometry is None:
+            return False, 0.0, "Missing geometry for verification"
+
+        similarity = _calculate_geometry_similarity(stored_geometry, captured_geometry)
+        accuracy = similarity * 100.0
+        match = accuracy >= accuracy_threshold
+        message = (
+            f"Geometry verification - Accuracy: {accuracy:.2f}%, "
+            f"Threshold: {accuracy_threshold}%, Match: {match}"
+        )
+        print(message)
+        return match, accuracy, message
+    except Exception as e:
+        err = f"Error in verify_geometry_with_accuracy: {e}"
+        print(err)
+        return False, 0.0, err
 
 def save_face_image(image_cv2, filepath):
     """Save face image to file."""

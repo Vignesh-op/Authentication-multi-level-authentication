@@ -4,6 +4,7 @@ import numpy as np
 import os
 from datetime import datetime
 from .qr_utils import generate_qr_code
+from .auth_utils import get_ist_timestamp
 import tempfile
 
 def _load_logo():
@@ -116,8 +117,9 @@ def generate_smartcard(name, unique_id, face_image_cv2, output_path):
         draw.text((24, 300), "Unique ID", fill=(220, 233, 255), font=text_font)
         draw.text((24, 344), unique_id, fill=(255, 255, 255), font=small_font)
         
-        # Date
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        # Date and time in IST
+        issued_at = get_ist_timestamp()
+        date_str = issued_at.strftime("%Y-%m-%d %H:%M:%S IST")
         draw.text((24, 462), f"Issued: {date_str}", fill=(220, 233, 255), font=small_font)
         
         # Passport-style photo region (portrait, not square)
@@ -200,8 +202,9 @@ def create_placeholder_card(name, unique_id, output_path):
         draw.text((24, 300), "Unique ID", fill=(220, 233, 255), font=text_font)
         draw.text((24, 344), unique_id, fill=(255, 255, 255), font=small_font)
         
-        # Date
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        # Date and time in IST
+        issued_at = get_ist_timestamp()
+        date_str = issued_at.strftime("%Y-%m-%d %H:%M:%S IST")
         draw.text((24, 462), f"Issued: {date_str}", fill=(220, 233, 255), font=small_font)
         
         # Placeholder for missing passport photo (portrait, no square frame)
